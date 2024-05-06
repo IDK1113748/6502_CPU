@@ -42,7 +42,7 @@ public:
 	}
 
 private:
-	enum addr_mode
+	enum addressing_mode
 	{
 		impl,
 		imm,
@@ -141,7 +141,7 @@ private:
 		TYA
 	};
 
-	string inst_name_str[56] =
+	const string inst_name_str[57] =
 	{
 		"ADC",
 		"AND",
@@ -198,13 +198,14 @@ private:
 		"TSX",
 		"TXA",
 		"TXS",
-		"TYA"
+		"TYA",
+		"err"
 	};
 
 	struct
 	{
 		inst_name name;
-		addr_mode Addr;
+		addressing_mode Addr;
 	} INSTS[16][15] =
 	{ 
 		{{BRK, impl}, {ORA, index_ind}, {},         {}, {},           {ORA, zpg},   {ASL, zpg},   {}, {PHP, impl}, {ORA, imm},   {ASL, acc},  {}, {},           {ORA, abs},   {ASL, abs}},
@@ -232,7 +233,7 @@ private:
 		return word(RAM[ptr + 1]) << 16 + RAM[ptr]; //LLHH, little-endian
 	}
 
-	word addr(addr_mode addr)
+	word fetch(addressing_mode addr)
 	{
 		switch (addr)
 		{
@@ -282,6 +283,8 @@ private:
 		int lo = opcode & 15;
 		int hi = (opcode >> 4) & 15;
 
+		addressing_mode addr = INSTS[hi][lo].Addr;
+
 		switch (INSTS[hi][lo].name)
 		{
 		case BRK:
@@ -290,7 +293,7 @@ private:
 		}
 		case ADC:
 		{
-			int mem = RAM[addr(INSTS[hi][lo].Addr)];
+			int mem = RAM[fetch(addr)];
 
 			int res = (int)rA + mem + (int)getFlag(fC);
 
@@ -306,7 +309,7 @@ private:
 
 		case AND:
 		{
-			rA = rA & RAM[addr(INSTS[hi][lo].Addr)];
+			rA = rA & RAM[fetch(addr)];
 
 			setFlag(fN, (rA < 0));
 			setFlag(fZ, (rA == 0));
@@ -314,9 +317,46 @@ private:
 			return true;
 		}
 
+		case ASL:
+		{
+			byte* op;
+			if (addr == acc)
+				op = &rA;
+			else
+				op = &RAM[fetch(addr)];
+
+			setFlag(fC, *op >> 7);
+			*op << 1;
+
+			setFlag(fN, (*op < 0));
+			setFlag(fZ, (*op == 0));
+
+			return true;
+		}
+
+		case BCC:
+		{
+			if (!((rS >> fC) & 1))
+				rPC += 1 + RAM[rPC];
+			else
+				rPC++;
+
+			return true;
+		}
+
+		case BCS:
+		{
+			if (((rS >> fC) & 1))
+				rPC += 1 + RAM[rPC];
+			else
+				rPC++;
+
+			return true;
+		}
+
 		case LDA:
 		{
-			rA = RAM[addr(INSTS[hi][lo].Addr)];
+			rA = RAM[fetch(addr)];
 
 			setFlag(fN, (rA < 0));
 			setFlag(fZ, (rA == 0));
@@ -328,206 +368,9 @@ private:
 		{
 			return true;
 		}
-		
-		//ADC
-		/*case 0x61:
-		case 0x65:
-		case 0x69:
-		case 0x6D:
-		case 0x71:
-		case 0x75:
-		case 0x79:
-		case 0x7D:
-		{
-			int mem;
-			switch (opcode)
-			{
-			case 0x61: mem = RAM[addr(index_ind)]; break;
-			case 0x65: mem = RAM[addr(zpg)]; break;
-			case 0x69: mem = RAM[addr(imm)]; break;
-			case 0x6D: mem = RAM[addr(abs)]; break;
-			case 0x71: mem = RAM[addr(ind_index)]; break;
-			case 0x75: mem = RAM[addr(zpg_X)]; break;
-			case 0x79: mem = RAM[addr(abs_Y)]; break;
-			case 0x7D: mem = RAM[addr(abs_X)]; break;
-			}
 
-			int res = (int)rA + mem + (int)getFlag(fC);
-
-			setFlag(fN, (res < 0));
-			setFlag(fZ, (res == 0));
-			setFlag(fC, (res >> 9) & 1);
-			setFlag(fV, (res > 127 || res < -128));
-
-			rA = byte(res & 0xFFFF);
-
-			return true;
-		}*/
-
-		// AND
-		/*case 0x21:
-		case 0x25:
-		case 0x29:
-		case 0x2D:
-		case 0x31:
-		case 0x35:
-		case 0x39:
-		case 0x3D:
-		{
-			switch (opcode)
-			{
-			case 0x21: rA = rA & RAM[addr(index_ind)]; break;
-			case 0x25: rA = rA & RAM[addr(zpg)]; break;
-			case 0x29: rA = rA & RAM[addr(imm)]; break;
-			case 0x2D: rA = rA & RAM[addr(abs)]; break;
-			case 0x31: rA = rA & RAM[addr(ind_index)]; break;
-			case 0x35: rA = rA & RAM[addr(zpg_X)]; break;
-			case 0x39: rA = rA & RAM[addr(abs_Y)]; break;
-			case 0x3D: rA = rA & RAM[addr(abs_X)]; break;
-			}
-
-			setFlag(fN, (rA < 0));
-			setFlag(fZ, (rA == 0));
-
-			return true;
-		}*/
-
-		// LDA
-		/*case 0xA1:
-		case 0xA5:
-		case 0xA9:
-		case 0xAD:
-		case 0xB1:
-		case 0xB5:
-		case 0xB9:
-		case 0xBD:
-		{
-			switch (opcode)
-			{
-			case 0xA1: rA = RAM[addr(index_ind)]; break;
-			case 0xA5: rA = RAM[addr(zpg)]; break;
-			case 0xA9: rA = RAM[addr(imm)]; break;
-			case 0xAD: rA = RAM[addr(abs)]; break;
-			case 0xB1: rA = RAM[addr(ind_index)]; break;
-			case 0xB5: rA = RAM[addr(zpg_X)]; break;
-			case 0xB9: rA = RAM[addr(abs_Y)]; break;
-			case 0xBD: rA = RAM[addr(abs_X)]; break;
-			}
-
-			setFlag(fN, (rA < 0));
-			setFlag(fZ, (rA == 0));
-
-			return true;
-		}*/
-
-		//case 0x61:
-//		{
-//			int res = (int)rA + (int)RAM[getWord(RAM[RAM[rPC++] + rX])] + (int)getFlag(fC);
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-
-//			return true;
-//		}
-
-//		case 0x65:
-//		{
-//			int res = (int)rA + (int)RAM[RAM[rPC++]] + (int)getFlag(fC);
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-
-//			return true;
-//		}
-
-//		case 0x69:
-//		{
-//			int res = (int)rA + (int)RAM[rPC++] + (int)getFlag(fC);
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-//			return true;
-//		}
-
-//		case 0x6D:
-//		{
-//			int res = (int)rA + (int)RAM[getWord(rPC)] + (int)getFlag(fC);
-//			rPC += 2;
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-//			return true;
-//		}
-
-//		case 0x71:
-//		{
-//			int res = (int)rA + (int)RAM[getWord(RAM[RAM[rPC++]]) + rY] + (int)getFlag(fC);
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-//			return true;
-//		}
-
-//		case 0x75:
-//		{
-//			int res = (int)rA + (int)RAM[RAM[rPC++] + rX] + (int)getFlag(fC);
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-//			return true;
-//		}
-
-//		case 0x7D:
-//		{
-//			int res = (int)rA + (int)RAM[getWord(rPC) + rX] + (int)getFlag(fC);
-//			rPC += 2;
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-//			return true;
-//		}
-
-//		case 0x79:
-//		{
-//			int res = (int)rA + (int)RAM[getWord(rPC) + rY] + (int)getFlag(fC);
-//			rPC += 2;
-
-//			setFlag(fN, (res < 0));
-//			setFlag(fZ, (res == 0));
-//			setFlag(fC, (res >> 9) & 1);
-//			setFlag(fV, (res > 127 || res < -128));
-
-//			rA = byte(res & 0xFFFF);
-//			return true;
-//		}
+		default:
+			return false;
 		}
 
 		return true;
