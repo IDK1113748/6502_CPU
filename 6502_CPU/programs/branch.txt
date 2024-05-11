@@ -1,0 +1,6 @@
+LDX #$0
+loop:
+INX
+CPX #$05
+BNE loop
+BRK

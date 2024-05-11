@@ -1,0 +1,6 @@
+LDA #$4
+CMP #$4
+BEQ end
+LDA #$6
+end:
+BRK

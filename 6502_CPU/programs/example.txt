@@ -1,0 +1,6 @@
+define op_0 $0090
+LDA #$42
+STA op_0
+LDA #$20
+ADC op_0
+BRK

@@ -7,6 +7,9 @@ class CPU_6502
 	using word = unsigned short;
 
 public:
+	CPU_6502();
+	~CPU_6502();
+
 	word rPC;
 	byte rSP;
 	byte rA;
@@ -137,7 +140,7 @@ public:
 	{{BEQ, rel},  {SBC, ind_index}, {},         {}, {},           {SBC, zpg_X}, {INC, zpg_X}, {}, {SED, impl}, {SBC, abs_Y}, {},          {}, {},           {SBC, abs_X}, {INC, abs_X}}
 	};
 
-	byte RAM[0x10000];
+	byte* RAM;
 
 	word getWord(word ptr);
 

@@ -6,6 +6,16 @@
 using byte = unsigned char;
 using word = unsigned short;
 
+CPU_6502::CPU_6502()
+{
+	RAM = new byte[0x10000];
+}
+
+CPU_6502::~CPU_6502()
+{
+	delete[] RAM;
+}
+
 void CPU_6502::init()
 {
 	rS = 0x2;
@@ -79,7 +89,7 @@ bool CPU_6502::getFlag(status_flag sf)
 
 void CPU_6502::setFlag(status_flag sf, bool val)
 {
-	rS = ((rS & (0xFFFF << (sf + 1))) + (val << rS) + (val & (1 << sf - 1)));
+	rS = ((rS & (0xFFFF << (sf + 1))) + (val << sf) + (rS & ((1 << sf) - 1)));
 }
 
 word CPU_6502::getWord(word ptr)
@@ -148,7 +158,7 @@ bool CPU_6502::execute()
 	int lo = opcode & 15;
 	int hi = (opcode >> 4) & 15;
 
-	//setFlag(fN, 1);
+	setFlag(fN, 1);
 
 	addressing_mode addr = INSTS[hi][lo].Addr;
 
@@ -162,7 +172,7 @@ bool CPU_6502::execute()
 		bool negA = neg(rA);
 		bool negM = neg(mem);
 		setFlag(fN, neg(res));
-		setFlag(fZ, (res == 0));
+		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, (res >> 8));
 		setFlag(fV, ((!fN && negA && negM) || (fN && !negA && !negM)));
 		rA = byte(res & 0xFF);
@@ -200,7 +210,7 @@ bool CPU_6502::execute()
 	case BCC:
 	{
 		if (!((rS >> fC) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 
@@ -210,17 +220,17 @@ bool CPU_6502::execute()
 	case BCS:
 	{
 		if (((rS >> fC) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
-
+		
 		return true;
 	}
 
 	case BEQ:
 	{
 		if (((rS >> fZ) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 
@@ -240,7 +250,7 @@ bool CPU_6502::execute()
 	case BMI:
 	{
 		if (((rS >> fN) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 		return true;
@@ -249,7 +259,7 @@ bool CPU_6502::execute()
 	case BNE:
 	{
 		if (!((rS >> fZ) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 		return true;
@@ -258,7 +268,7 @@ bool CPU_6502::execute()
 	case BPL:
 	{
 		if (!((rS >> fN) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 		return true;
@@ -278,7 +288,7 @@ bool CPU_6502::execute()
 	case BVC:
 	{
 		if (!((rS >> fV) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 		return true;
@@ -287,7 +297,7 @@ bool CPU_6502::execute()
 	case BVS:
 	{
 		if (((rS >> fV) & 1))
-			rPC += 1 + RAM[rPC];
+			rPC += 1 + *(signed char*)(&RAM[rPC]);
 		else
 			rPC++;
 		return true;
@@ -325,7 +335,7 @@ bool CPU_6502::execute()
 	{
 		unsigned int res = subtract(rA, RAM[fetch(addr)]);
 		setFlag(fN, neg(res));
-		setFlag(fZ, (res == 0));
+		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, (res >> 8));
 
 		return true;
@@ -335,7 +345,7 @@ bool CPU_6502::execute()
 	{
 		unsigned int res = subtract(rX, RAM[fetch(addr)]);
 		setFlag(fN, neg(res));
-		setFlag(fZ, (res == 0));
+		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, (res >> 8));
 
 		return true;
@@ -345,7 +355,7 @@ bool CPU_6502::execute()
 	{
 		unsigned int res = subtract(rY, RAM[fetch(addr)]);
 		setFlag(fN, neg(res));
-		setFlag(fZ, (res == 0));
+		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, (res >> 8));
 
 		return true;
@@ -605,7 +615,7 @@ bool CPU_6502::execute()
 		bool negA = neg(rA);
 		bool negM = neg(mem);
 		setFlag(fN, neg(res));
-		setFlag(fZ, (res == 0));
+		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, (res >> 8));
 		setFlag(fV, ((!fN && negA && negM) || (fN && !negA && !negM)));
 		rA = byte(res & 0xFF);

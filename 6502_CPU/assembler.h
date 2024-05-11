@@ -185,7 +185,7 @@ public:
 #endif
 	}
 
-	typedef struct labelStruct
+	struct labelStruct
 	{
 		std::string labelName;
 		int val;
@@ -195,6 +195,7 @@ public:
 
 	void collectLabels(std::string& assembly)
 	{
+		labels.clear();
 		int ch = 0;
 		int loc = 0;
 
@@ -237,6 +238,8 @@ public:
 
 			if (assembly[ch] != '\n')
 			{
+				std::string opcode = assembly.substr(ch, 3);
+
 				if (assembly[ch] == ';')
 				{
 					while (assembly[ch] != '\n')
@@ -248,12 +251,13 @@ public:
 				{
 					loc++;
 
-					int opcodeBegin = ch;
-
 					ch += 3;
 					while (whitespace(assembly[ch]))
 						ch++;
 
+					if (opcode[0] == 'B' && opcode != "BRK" && opcode != "BIT")
+						loc++;
+					else
 					switch (assembly[ch])
 					{
 					case '#':
@@ -261,8 +265,6 @@ public:
 						break;
 					case '(':
 					{
-						std::string opcode = assembly.substr(opcodeBegin, 3);
-
 						for (int i = 0; i < 3; i++)
 						{
 							if (opcode[i] >= 'a' && opcode[i] <= 'z')
@@ -469,6 +471,10 @@ public:
 						}
 						ch++;
 					}
+					else if (opcode[0] == 'B' && opcode != "BIT" && opcode != "BRK")
+					{
+						am = CPU_6502::rel;
+					}
 
 					if (!indirect)
 					{
@@ -572,7 +578,18 @@ public:
 						//case '0':
 							//	break; //octal
 						case '$':
-							if (indirect || (am != CPU_6502::imm && alphanum(assembly[ch + 3]) && assembly[ch + 1] != 0 && assembly[ch + 2] != 0))
+							if (am == CPU_6502::rel)
+							{
+								nArgs = 1;
+								int n;
+								if (alphanum(assembly[ch + 3]) && alphanum(assembly[ch + 3]))
+									n = ctohex(assembly[ch + 1]) * 16 * 16 * 16 + ctohex(assembly[ch + 2]) * 16 * 16 + ctohex(assembly[ch + 3]) * 16 + ctohex(assembly[ch + 4]);
+								else n = ctohex(assembly[ch + 1]) * 16 + ctohex(assembly[ch + 2]);
+
+								signed char offset = (signed short)n - (signed short)ptr - 2;
+								arg[0] = *(byte*)(&offset);
+							}
+							else if (indirect || !(am == CPU_6502::imm || !alphanum(assembly[ch + 3]) || (alphanum(assembly[ch + 3]) && assembly[ch + 1] == '0' && assembly[ch + 2] == '0')))
 							{
 								nArgs = 2;
 								if (indirect && !alphanum(assembly[ch + 3]))
@@ -598,6 +615,8 @@ public:
 							}
 							else
 							{
+								if (alphanum(assembly[ch + 3]) && assembly[ch + 1] == '0' && assembly[ch + 2] == '0')
+									ch += 2;
 								nArgs = 1;
 								arg[0] = ctohex(assembly[ch + 1]) * 16 + ctohex(assembly[ch + 2]);
 
@@ -633,20 +652,29 @@ public:
 							{
 								if (name == l.labelName)
 								{
-									if (!indirect)
+									if (am == CPU_6502::rel)
 									{
-										if (Xind)
-											am = CPU_6502::abs_X;
-										else if (Yind)
-											am = CPU_6502::abs_Y;
-										else
-											am = CPU_6502::abs;
+										nArgs = 1;
+
+										signed char offset = (signed short)l.val - (signed short)ptr - 2;
+										arg[0] = *(byte*)(&offset);
 									}
+									else
+									{
+										if (!indirect)
+										{
+											if (Xind)
+												am = CPU_6502::abs_X;
+											else if (Yind)
+												am = CPU_6502::abs_Y;
+											else
+												am = CPU_6502::abs;
+										}
 
-									nArgs = 2;
-									arg[0] = l.val & 0xFF;
-									arg[1] = l.val >> 8;
-
+										nArgs = 2;
+										arg[0] = l.val & 0xFF;
+										arg[1] = l.val >> 8;
+									}
 									foundLabel = true;
 									break;
 								}
@@ -662,6 +690,7 @@ public:
 						{
 							if (_cpu.INSTS[i][j].name == enum_name && _cpu.INSTS[i][j].Addr == am)
 							{
+								std::cout << "ptr: " << ptr << "\n";
 								_cpu.RAM[ptr++] = (i << 4) + j;
 
 								for (int a = 0; a < nArgs; a++)
@@ -687,8 +716,8 @@ public:
 		{
 			for (int j = 0; j < 8; j++)
 			{
-				int index = i * 10 + j;
-				if (index <= ptr)
+				int index = i * 8 + j;
+				if (index < ptr)
 					printf("%02x  ", _cpu.RAM[index]);
 				else
 				{
