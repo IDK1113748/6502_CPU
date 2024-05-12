@@ -1,0 +1,6 @@
+lda #$47
+cmp #$46
+beq end
+Lda #$07
+end:
+BRK

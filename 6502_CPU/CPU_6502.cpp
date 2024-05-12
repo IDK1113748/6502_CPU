@@ -43,9 +43,9 @@ void CPU_6502::start()
 
 	int i = 0;
 
-	while (execute())
+	while (execute() && i < 100)
 	{
-		std::printf("%d. PC: %x A: %x X: %x Y: %x SP: %x P: ", i, rPC, rA, rX, rY, rSP);
+		std::printf("%3d. PC: %02x A: %02x X: %02x Y: %02x SP: %02x P: ", i, rPC, rA, rX, rY, rSP);
 		for (int i = 0; i < 8; i++)
 		{
 			if(i != f_ && ((rS >> i) & 1) == 1)
@@ -94,7 +94,7 @@ void CPU_6502::setFlag(status_flag sf, bool val)
 
 word CPU_6502::getWord(word ptr)
 {
-	return word(RAM[ptr + 1]) << 16 + RAM[ptr]; //LLHH, little-endian
+	return (word(RAM[ptr + 1]) << 8) + RAM[ptr]; //LLHH, little-endian
 }
 
 unsigned int CPU_6502::subtract(byte op1, byte op2)
@@ -109,7 +109,7 @@ bool CPU_6502::neg(unsigned int num)
 	return (num >> 7) & 0x1;
 }
 
-word CPU_6502::fetch(addressing_mode addr)
+word CPU_6502::fetch(addressing_mode addr, bool incPC)
 {
 	switch (addr)
 	{
@@ -118,7 +118,8 @@ word CPU_6502::fetch(addressing_mode addr)
 	case abs:
 	{
 		word a = getWord(rPC);
-		rPC += 2;
+		if(incPC)
+			rPC += 2;
 		return a;
 	}
 	case zpg:
@@ -157,8 +158,6 @@ bool CPU_6502::execute()
 	word opcode = RAM[rPC++];
 	int lo = opcode & 15;
 	int hi = (opcode >> 4) & 15;
-
-	setFlag(fN, 1);
 
 	addressing_mode addr = INSTS[hi][lo].Addr;
 
@@ -386,8 +385,8 @@ bool CPU_6502::execute()
 	{
 		rY--;
 
-		setFlag(fN, (rX >> 7));
-		setFlag(fZ, (rX == 0));
+		setFlag(fN, (rY >> 7));
+		setFlag(fZ, (rY == 0));
 
 		return true;
 	}
@@ -435,18 +434,20 @@ bool CPU_6502::execute()
 
 	case JMP:
 	{
-		rPC = getWord(RAM[fetch(addr)]);
-
+		rPC = fetch(addr, false);
+		
 		return true;
 	}
 
 	case JSR:
 	{
 		rPC += 2;
+
 		RAM[0x0100 + rSP--] = rPC & 0xFF;
 		RAM[0x0100 + rSP--] = rPC >> 8;
-		rPC = getWord(RAM[fetch(addr)]);
-
+		rPC -= 2;
+		rPC = fetch(addr, false);
+		
 		return true;
 	}
 
@@ -599,11 +600,9 @@ bool CPU_6502::execute()
 	case RTS:
 	{
 		rPC = 0;
-		rPC += RAM[0x0100 + rSP++] << 8;
-		rPC += RAM[0x0100 + rSP++];
-
-		rPC++;
-
+		rPC += (RAM[0x0100 + ++rSP] << 8);
+		rPC += RAM[0x0100 + ++rSP];
+		
 		return true;
 	}
 
@@ -616,7 +615,7 @@ bool CPU_6502::execute()
 		bool negM = neg(mem);
 		setFlag(fN, neg(res));
 		setFlag(fZ, ((res & 0xFF) == 0));
-		setFlag(fC, (res >> 8));
+		setFlag(fC, !(res >> 8));
 		setFlag(fV, ((!fN && negA && negM) || (fN && !negA && !negM)));
 		rA = byte(res & 0xFF);
 

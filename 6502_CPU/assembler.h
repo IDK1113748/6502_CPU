@@ -690,7 +690,6 @@ public:
 						{
 							if (_cpu.INSTS[i][j].name == enum_name && _cpu.INSTS[i][j].Addr == am)
 							{
-								std::cout << "ptr: " << ptr << "\n";
 								_cpu.RAM[ptr++] = (i << 4) + j;
 
 								for (int a = 0; a < nArgs; a++)

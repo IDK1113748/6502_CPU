@@ -1,0 +1,20 @@
+define a $fd
+define b $fe
+define c $ff
+LDA #$00
+STA a
+STA c
+LDA #$01
+STA b
+loop:
+BCS end
+TAX
+LDA a
+STA c
+LDA b
+STA a
+ADC c
+STA b
+JMP loop
+end:
+BRK

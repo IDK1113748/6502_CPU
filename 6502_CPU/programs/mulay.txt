@@ -1,0 +1,23 @@
+LDA #$07
+LDY #$04
+JSR mulay
+LDX #$03
+JSR mulay
+BRK
+
+mulay:
+PHA
+;STA $ff
+mulay_loop:
+DEY
+BEQ mulay_ret
+;ADC $ff
+TSX
+INX
+ADC $0100,X
+JMP mulay_loop
+mulay_ret:
+PLA
+RTS
+
+

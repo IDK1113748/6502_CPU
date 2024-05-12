@@ -1,0 +1,11 @@
+define a #$04
+define b #$03
+
+SEC
+LDA a
+SBC b
+
+CLC
+
+LDA a
+CMP b

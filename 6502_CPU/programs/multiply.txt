@@ -1,0 +1,17 @@
+LDA #$22
+LDX #$04
+JSR mul
+SEC
+SBC #$12 ;34*4-18
+BRK
+mul: ;22*4
+STA $ff
+mul_loop:
+DEX
+BEQ ret
+ADC $ff
+JMP mul_loop
+ret:
+RTS
+
+

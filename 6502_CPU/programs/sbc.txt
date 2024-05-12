@@ -1,0 +1,17 @@
+SEC
+LDA #$08
+SBC #$08
+
+CLC
+LDA #$08
+SBC #$08
+
+SEC
+LDA #$08
+SBC #$09
+
+CLC
+LDA #$09
+SBC #$08
+
+BRK

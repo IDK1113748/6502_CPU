@@ -148,7 +148,7 @@ public:
 
 	bool neg(unsigned int num);
 
-	word fetch(addressing_mode addr);
+	word fetch(addressing_mode addr, bool incPC = true);
 
 	bool execute();
 };

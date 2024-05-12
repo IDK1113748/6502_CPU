@@ -1,0 +1,4 @@
+JMP END
+LDA #$42
+END:
+BRK
