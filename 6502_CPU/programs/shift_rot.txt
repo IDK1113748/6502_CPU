@@ -1,0 +1,12 @@
+lda #$55
+lsr A
+asl A
+
+lda #$1a
+ror A
+ror A
+ror A
+rol A
+rol A
+rol A
+brk

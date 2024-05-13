@@ -198,7 +198,7 @@ bool CPU_6502::execute()
 			op = &RAM[fetch(addr)];
 
 		setFlag(fC, *op >> 7);
-		*op << 1;
+		*op <<= 1;
 
 		setFlag(fN, (*op >> 7));
 		setFlag(fZ, (*op == 0));
@@ -490,7 +490,7 @@ bool CPU_6502::execute()
 			op = &RAM[fetch(addr)];
 
 		setFlag(fC, *op & 1);
-		*op >> 1;
+		*op >>= 1;
 
 		setFlag(fN, (*op >> 7));
 		setFlag(fZ, (*op == 0));
@@ -553,10 +553,10 @@ bool CPU_6502::execute()
 		else
 			op = &RAM[fetch(addr)];
 
-		bool cachedCarry = rS >> fC;
+		bool cachedCarry = getFlag(fC);
 
 		setFlag(fC, *op >> 7);
-		*op << 1;
+		*op <<= 1;
 		if (cachedCarry)
 			(*op)++;
 
@@ -577,7 +577,7 @@ bool CPU_6502::execute()
 		bool cachedCarry = rS >> fC;
 
 		setFlag(fC, *op & 1);
-		*op >> 1;
+		*op >>= 1;
 		if (cachedCarry)
 			(*op) += (1 << 7);
 
