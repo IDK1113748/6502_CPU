@@ -278,6 +278,10 @@ public:
 					}
 					case '$':
 					{
+         //!!!!!! DOESN'T WORK (use smth like the binary case)
+
+
+
 						if (assembly[ch + 1] == '0' && assembly[ch + 2] == '0')
 							loc++;
 						else if (alphanum(assembly[ch + 3]))
@@ -615,6 +619,7 @@ public:
 							}
 							else
 							{
+// DOESN'T WORK
 								if (alphanum(assembly[ch + 3]) && assembly[ch + 1] == '0' && assembly[ch + 2] == '0')
 									ch += 2;
 								nArgs = 1;
@@ -652,6 +657,7 @@ public:
 							{
 								if (name == l.labelName)
 								{
+//WRONG (update this for ind_index and index_ind, they're zpg)
 									if (am == CPU_6502::rel)
 									{
 										nArgs = 1;
