@@ -176,6 +176,18 @@ public:
 
 	std::vector<labelStruct> labels;
 
+	int stoi(std::string s)
+	{
+		unsigned int n = 0;
+
+		for (int i = 0; i < s.length(); i++)
+		{
+			n = 10 * n + s[i] - '0';
+		}
+
+		return n;
+	}
+
 	void collectLabels(std::string& assembly)
 	{
 		labels.clear();
@@ -320,7 +332,16 @@ public:
 							}
 							else if(num(assembly[ch]))
 							{
+								int len;
+								for (int i = 0; num(assembly[ch + 1 + i]); i++)
+									len++;
 
+								int n = stoi(assembly.substr(ch + 1, len));
+
+								if (n >= 256)
+									loc += 2;
+								else
+									loc++;
 							}
 						}
 
@@ -652,12 +673,30 @@ public:
 
 							}
 							break;
-							//default:
-							//decimal (num())
+							default:
+							{
+								if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
+								{
+									bool neg = (assembly[ch] == '-');
+									if(neg)
+										ch++;
+
+									int len;
+									for (int i = 0; num(assembly[ch + i]); i++)
+										len++;
+
+									int n = stoi(assembly.substr(ch, len));
+
+									if (jump || n >= 127 || (n == 128 && neg))
+									{
+										//wip
+									}
+								}
+							}
 						}
 					}
 					else if (alpha(assembly[ch]))
-					{
+					
 						if (assembly[ch] == 'A' && !(alphanum(assembly[ch + 1]) || assembly[ch+1] == '_'))
 						{
 							am = CPU_6502::acc;
