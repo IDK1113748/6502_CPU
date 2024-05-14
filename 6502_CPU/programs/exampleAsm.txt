@@ -1,12 +1,18 @@
 define op_0 $090
+label1:
 LDA #$1
+label_2:
 LDA #%1
+label_3:
 LDA #$42
 STA op_0
 LDA #$20
 ADC $0190
 JMP ($76)
 JMP ($0076)
+JMP $76
+JSR label_3
+ADC label_3
 STA ($23, X)
 STA ($24), Y
 ; STA ($0123, X) ; invalid - assembles to STA abs
@@ -17,4 +23,5 @@ ROL A
 ADC $45
 ADC  %01000101
 ADC %101000101
+label_f:
 BRK

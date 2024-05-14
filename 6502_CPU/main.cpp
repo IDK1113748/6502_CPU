@@ -35,6 +35,6 @@ int main()
 	{
 		cpu.init();
 		assmer.assemble(text);
-		cpu.start();
+		//cpu.start();
 	}
 }

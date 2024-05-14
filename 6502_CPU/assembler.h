@@ -83,23 +83,6 @@ public:
 	a label cannot be defined after a line of code (e.g. "STX #$42 blabla:")
 	*/
 
-	//std::string assembly =
-		//"Man:\n"
-		//"   define ohn ock\n"
-		//"LDA #$32\n"
-		//"define DA_ADres $58\n"
-		//"  STA $4521  ; Idk dude\n"
-		//"JMP Man\n"
-		//"JMP (DA_ADres) \n"
-		//"JSR Del\n"
-		//"Cohn:  \n"
-		//"LDA %0000101\n"
-		//"ROL A\n"
-		//"Del: LDA #$42\n"
-		//"SBC ($1256), Y\n"
-		//"ROL A\n"
-		//"END:";
-
 	bool alpha(char c)
 	{
 		return ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
@@ -258,70 +241,79 @@ public:
 					if (opcode[0] == 'B' && opcode != "BRK" && opcode != "BIT")
 						loc++;
 					else
-					switch (assembly[ch])
-					{
-					case '#':
-						loc++;
-						break;
-					case '(':
-					{
-						for (int i = 0; i < 3; i++)
+						switch (assembly[ch])
 						{
-							if (opcode[i] >= 'a' && opcode[i] <= 'z')
-								opcode[i] -= 32;
-						}
-						if (opcode == "JMP")
-							loc += 2;
-						else
+						case '#':
 							loc++;
-						break;
-					}
-					case '$':
-					{
-         //!!!!!! DOESN'T WORK (use smth like the binary case)
-
-
-
-						if (assembly[ch + 1] == '0' && assembly[ch + 2] == '0')
-							loc++;
-						else if (alphanum(assembly[ch + 3]))
-							loc += 2;
-						else
-							loc++;
-						break;
-					}
-					case '%':
-					{
-						int len = 0;
-
-						for (int i = 0; assembly[ch + 1 + i] == '0' || assembly[ch + 1 + i] == '1'; i++)
+							break;
+						case '(':
 						{
-							if (len > 0)
-								len++;
-
-							if (assembly[ch + 1 + i] == '1')
+							for (int i = 0; i < 3; i++)
 							{
-								if (len == 0)
-									len++;
+								if (opcode[i] >= 'a' && opcode[i] <= 'z')
+									opcode[i] -= 32;
 							}
-
-						}
-
-						if (len <= 8)
-							loc++;
-						else
-							loc += 2;
-						break;
-					}
-					default:
-						if (alpha(assembly[ch]))
-						{
-							if (!(assembly[ch] == 'A' && (assembly[ch + 1] == '\n' || whitespace(assembly[ch + 1]) || assembly[ch + 1] == ';')))
-							{
+							if (opcode == "JMP")
 								loc += 2;
+							else
+								loc++;
+							break;
+						}
+						case '$':
+						{
+							int len = 0;
+
+							for (int i = 0; alphanum(assembly[ch + 1 + i]); i++)
+							{
+								if (len > 0)
+									len++;
+
+								if (assembly[ch + 1 + i] != '0')
+								{
+									if (len == 0)
+										len++;
+								}
+
+							}
+
+							if (len <= 2)
+								loc++;
+							else
+								loc += 2;
+							break;
+						}
+						case '%':
+						{
+							int len = 0;
+
+							for (int i = 0; assembly[ch + 1 + i] == '0' || assembly[ch + 1 + i] == '1'; i++)
+							{
+								if (len > 0)
+									len++;
+
+								if (assembly[ch + 1 + i] == '1')
+								{
+									if (len == 0)
+										len++;
+								}
+
+							}
+
+							if (len <= 8)
+								loc++;
+							else
+								loc += 2;
+							break;
+						}
+						default:
+							if (alpha(assembly[ch]))
+							{
+								if (!(assembly[ch] == 'A' && (assembly[ch + 1] == '\n' || whitespace(assembly[ch + 1]) || assembly[ch + 1] == ';')))
+								{
+									loc += 2;
+								}
 							}
 						}
-					}
 
 					while (assembly[ch] != '\n')
 						ch++;
@@ -338,7 +330,7 @@ public:
 #endif
 	}
 
-	int ctohex(char c)
+	int hextoi(char c)
 	{
 		if (num(c))
 			return c - '0';
@@ -350,13 +342,24 @@ public:
 		return 0;
 	}
 
+	unsigned int stohex(std::string s)
+	{
+		unsigned int n = 0;
+
+		for (int i = 0; i < s.length(); i++)
+		{
+			n = 16 * n + hextoi(s[i]);
+		}
+
+		return n;
+	}
+
 	unsigned int stobin(std::string s)
 	{
 		unsigned int n = 0;
 
 		for (int i = 0; i < s.length(); i++)
 		{
-			//std::cout << (int)n << "\n";
 			n = n << 1;
 			n += s[i] - '0';
 		}
@@ -480,6 +483,8 @@ public:
 						am = CPU_6502::rel;
 					}
 
+					bool jump = (opcode == "JMP" || opcode == "JSR");
+
 					if (!indirect)
 					{
 						for (int j = ch; assembly[j] != '\n' && assembly[j] != ';' && !Yind && !Xind; j++)
@@ -535,23 +540,15 @@ public:
 
 							}
 
-							unsigned int num = stobin(assembly.substr(ch + 1, i));
+							unsigned int num = stobin(assembly.substr(ch + 1 + i - len, len));
 
-							if (indirect || (am != CPU_6502::imm && len > 8/*&& i > 7 && !isZpg*/))
+							if (jump || len > 8)
 							{
 								nArgs = 2;
-								if (indirect && i <= 7)
-								{
-									arg[0] = num;
-									arg[1] = 0;
-								}
-								else
-								{
-									arg[0] = num & 0xFF;
-									arg[1] = (num >> 8) & 0xFF;
-								}
+								arg[0] = num & 0xFF;
+								arg[1] = (num >> 8) & 0xFF;
 
-								if (!indirect)
+								if (am != CPU_6502::ind)
 								{
 									if (Xind)
 										am = CPU_6502::abs_X;
@@ -564,9 +561,9 @@ public:
 							else
 							{
 								nArgs = 1;
-								arg[0] = num;
+								arg[0] = num & 0xFF;
 
-								if (am != CPU_6502::imm)
+								if (am != CPU_6502::imm && !indirect)
 								{
 									if (Xind)
 										am = CPU_6502::zpg_X;
@@ -575,7 +572,6 @@ public:
 									else
 										am = CPU_6502::zpg;
 								}
-
 							}
 							break;
 						}
@@ -584,56 +580,67 @@ public:
 						case '$':
 							if (am == CPU_6502::rel)
 							{
+								//rewrite this garbage (although it works)
 								nArgs = 1;
 								int n;
 								if (alphanum(assembly[ch + 3]) && alphanum(assembly[ch + 3]))
-									n = ctohex(assembly[ch + 1]) * 16 * 16 * 16 + ctohex(assembly[ch + 2]) * 16 * 16 + ctohex(assembly[ch + 3]) * 16 + ctohex(assembly[ch + 4]);
-								else n = ctohex(assembly[ch + 1]) * 16 + ctohex(assembly[ch + 2]);
+									n = hextoi(assembly[ch + 1]) * 16 * 16 * 16 + hextoi(assembly[ch + 2]) * 16 * 16 + hextoi(assembly[ch + 3]) * 16 + hextoi(assembly[ch + 4]);
+								else n = hextoi(assembly[ch + 1]) * 16 + hextoi(assembly[ch + 2]);
 
 								signed char offset = (signed short)n - (signed short)ptr - 2;
 								arg[0] = *(byte*)(&offset);
 							}
-							else if (indirect || !(am == CPU_6502::imm || !alphanum(assembly[ch + 3]) || (alphanum(assembly[ch + 3]) && assembly[ch + 1] == '0' && assembly[ch + 2] == '0')))
+							else
 							{
-								nArgs = 2;
-								if (indirect && !alphanum(assembly[ch + 3]))
+								int len = 0;
+								int i;
+
+								for (i = 0; alphanum(assembly[ch + 1 + i]); i++)
 								{
-									arg[0] = ctohex(assembly[ch + 1]) * 16 + ctohex(assembly[ch + 2]);
-									arg[1] = 0;
+									if (len > 0)
+										len++;
+
+									if (assembly[ch + 1 + i] != '0')
+									{
+										if (len == 0)
+											len++;
+									}
+								}
+
+								int num = stohex(assembly.substr(ch + 1 + i - len, len));
+
+								if (jump || len > 2)
+								{
+									nArgs = 2;
+									arg[0] = num & 0xFF;
+									arg[1] = (num >> 8) & 0xFF;
+
+									if (am != CPU_6502::ind)
+									{
+										if (Xind)
+											am = CPU_6502::abs_X;
+										else if (Yind)
+											am = CPU_6502::abs_Y;
+										else
+											am = CPU_6502::abs;
+									}
 								}
 								else
 								{
-									arg[0] = ctohex(assembly[ch + 3]) * 16 + ctohex(assembly[ch + 4]);
-									arg[1] = ctohex(assembly[ch + 1]) * 16 + ctohex(assembly[ch + 2]);
+									nArgs = 1;
+									arg[0] = num & 0xFF;
+
+									if (am != CPU_6502::imm && !indirect)
+									{
+										if (Xind)
+											am = CPU_6502::zpg_X;
+										else if (Yind)
+											am = CPU_6502::zpg_Y;
+										else
+											am = CPU_6502::zpg;
+									}
 								}
 
-								if (!indirect)
-								{
-									if (Xind)
-										am = CPU_6502::abs_X;
-									else if (Yind)
-										am = CPU_6502::abs_Y;
-									else
-										am = CPU_6502::abs;
-								}
-							}
-							else
-							{
-// DOESN'T WORK
-								if (alphanum(assembly[ch + 3]) && assembly[ch + 1] == '0' && assembly[ch + 2] == '0')
-									ch += 2;
-								nArgs = 1;
-								arg[0] = ctohex(assembly[ch + 1]) * 16 + ctohex(assembly[ch + 2]);
-
-								if (am != CPU_6502::imm)
-								{
-									if (Xind)
-										am = CPU_6502::zpg_X;
-									else if (Yind)
-										am = CPU_6502::zpg_Y;
-									else
-										am = CPU_6502::zpg;
-								}
 							}
 							break;
 							//default:
@@ -651,13 +658,12 @@ public:
 							std::string name;
 							for (int i = ch; alphanum(assembly[i]) || assembly[i] == '_'; i++)
 								name += assembly[i];
-
+							
 							bool foundLabel = false;
 							for (const auto& l : labels)
 							{
 								if (name == l.labelName)
 								{
-//WRONG (update this for ind_index and index_ind, they're zpg)
 									if (am == CPU_6502::rel)
 									{
 										nArgs = 1;
@@ -665,22 +671,48 @@ public:
 										signed char offset = (signed short)l.val - (signed short)ptr - 2;
 										arg[0] = *(byte*)(&offset);
 									}
-									else
+									else 
 									{
-										if (!indirect)
+										if (indirect)
 										{
-											if (Xind)
-												am = CPU_6502::abs_X;
-											else if (Yind)
-												am = CPU_6502::abs_Y;
+											if (am == CPU_6502::ind_index && am == CPU_6502::index_ind)
+												nArgs = 1;
 											else
-												am = CPU_6502::abs;
+												nArgs = 2;
+										}
+										else
+										{
+											if (l.val >> 8 == 0 && !jump)
+											{
+												if (Xind)
+													am = CPU_6502::zpg_X;
+												else if (Yind)	  
+													am = CPU_6502::zpg_Y;
+												else			   
+													am = CPU_6502::zpg;
+
+												nArgs = 1;
+											}
+											else
+											{
+												if (Xind)
+													am = CPU_6502::abs_X;
+												else if (Yind)
+													am = CPU_6502::abs_Y;
+												else
+													am = CPU_6502::abs;
+
+												nArgs = 2;
+											}
 										}
 
-										nArgs = 2;
 										arg[0] = l.val & 0xFF;
-										arg[1] = l.val >> 8;
+										if (nArgs == 2)
+										{
+											arg[1] = l.val >> 8;
+										}
 									}
+
 									foundLabel = true;
 									break;
 								}
@@ -735,30 +767,3 @@ public:
 #endif
 	}
 };
-
-/*int main()
-{
-	//string assembly = "Start\n";
-	//
-	//	string line;
-	//	do{
-	//		getline(cin, line);
-	//		assembly += line + "\n";
-	//	}while(line != "Exit");
-	//
-	//	cout << assembly;
-
-	assembler asmer;
-	asmer.preprocess();
-	asmer.collectLabels();
-
-	asmer.assemble();
-
-	std::cout << "\n";
-	for (int i = 0; i < 10; i++)
-	{
-		for (int j = 0; j < 10; j++)
-			printf("%02x  ", asmer.RAM[i * 10 + j]);
-		printf("\n");
-	}
-}*/
