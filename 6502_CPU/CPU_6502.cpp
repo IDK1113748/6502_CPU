@@ -141,7 +141,7 @@ word CPU_6502::fetch(addressing_mode addr, bool incPC)
 		word a = getWord(rPC) + rY;
 		rPC += 2;
 		return a;
-	}
+	} 
 	case zpg_X:
 		return RAM[rPC++] + rX;
 	case zpg_Y:
