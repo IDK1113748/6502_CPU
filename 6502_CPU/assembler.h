@@ -223,6 +223,13 @@ public:
 			{
 				std::string opcode = assembly.substr(ch, 3);
 
+				for (int i = 0; i < 3; i++)
+				{
+					if (opcode[i] >= 'a' && opcode[i] <= 'z')
+						opcode[i] -= 32;
+				}
+				bool branch = (opcode[0] == 'B' && !(opcode == "BIT" && opcode == "BRK"));
+
 				if (assembly[ch] == ';')
 				{
 					while (assembly[ch] != '\n')
@@ -248,11 +255,6 @@ public:
 							break;
 						case '(':
 						{
-							for (int i = 0; i < 3; i++)
-							{
-								if (opcode[i] >= 'a' && opcode[i] <= 'z')
-									opcode[i] -= 32;
-							}
 							if (opcode == "JMP")
 								loc += 2;
 							else
@@ -310,8 +312,15 @@ public:
 							{
 								if (!(assembly[ch] == 'A' && (assembly[ch + 1] == '\n' || whitespace(assembly[ch + 1]) || assembly[ch + 1] == ';')))
 								{
-									loc += 2;
+									if (branch)
+										loc++;
+									else
+										loc += 2;
 								}
+							}
+							else if(num(assembly[ch]))
+							{
+
 							}
 						}
 
@@ -649,7 +658,7 @@ public:
 					}
 					else if (alpha(assembly[ch]))
 					{
-						if (assembly[ch] == 'A' && !alphanum(assembly[ch + 1]))
+						if (assembly[ch] == 'A' && !(alphanum(assembly[ch + 1]) || assembly[ch+1] == '_'))
 						{
 							am = CPU_6502::acc;
 						}
@@ -673,44 +682,21 @@ public:
 									}
 									else 
 									{
-										if (indirect)
+										if (!indirect)
 										{
-											if (am == CPU_6502::ind_index && am == CPU_6502::index_ind)
-												nArgs = 1;
+											if (Xind)
+												am = CPU_6502::abs_X;
+											else if (Yind)
+												am = CPU_6502::abs_Y;
 											else
-												nArgs = 2;
+												am = CPU_6502::abs;
 										}
-										else
-										{
-											if (l.val >> 8 == 0 && !jump)
-											{
-												if (Xind)
-													am = CPU_6502::zpg_X;
-												else if (Yind)	  
-													am = CPU_6502::zpg_Y;
-												else			   
-													am = CPU_6502::zpg;
 
-												nArgs = 1;
-											}
-											else
-											{
-												if (Xind)
-													am = CPU_6502::abs_X;
-												else if (Yind)
-													am = CPU_6502::abs_Y;
-												else
-													am = CPU_6502::abs;
-
-												nArgs = 2;
-											}
-										}
+										nArgs = 2; //Note: data labels cannot be used with the zero page (for example "ADC zpgaddr")
+												   //the absolute opcode will be used wherever a zero-page is detected (with the exception of the indirect zpg, which will not assemble)
 
 										arg[0] = l.val & 0xFF;
-										if (nArgs == 2)
-										{
-											arg[1] = l.val >> 8;
-										}
+										arg[1] = l.val >> 8;
 									}
 
 									foundLabel = true;
