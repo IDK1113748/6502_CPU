@@ -332,7 +332,7 @@ public:
 							}
 							else if(num(assembly[ch]))
 							{
-								int len;
+								int len = 0;
 								for (int i = 0; num(assembly[ch + 1 + i]); i++)
 									len++;
 
@@ -671,32 +671,32 @@ public:
 									}
 								}
 
-							}
 							break;
-							default:
-							{
-								if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
-								{
-									bool neg = (assembly[ch] == '-');
-									if(neg)
-										ch++;
-
-									int len;
-									for (int i = 0; num(assembly[ch + i]); i++)
-										len++;
-
-									int n = stoi(assembly.substr(ch, len));
-
-									if (jump || n >= 127 || (n == 128 && neg))
-									{
-										//wip
-									}
-								}
 							}
+							//default:
+							//{
+							//	if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
+							//	{
+							//		bool neg = (assembly[ch] == '-');
+							//		if(neg)
+							//			ch++;
+
+							//		int len;
+							//		for (int i = 0; num(assembly[ch + i]); i++)
+							//			len++;
+
+							//		int n = stoi(assembly.substr(ch, len));
+
+							//		if (jump || n >= 127 || (n == 128 && neg))
+							//		{
+							//			//wip
+							//		}
+							//	}
+							//}
 						}
 					}
 					else if (alpha(assembly[ch]))
-					
+					{
 						if (assembly[ch] == 'A' && !(alphanum(assembly[ch + 1]) || assembly[ch+1] == '_'))
 						{
 							am = CPU_6502::acc;
