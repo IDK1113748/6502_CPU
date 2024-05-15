@@ -29,5 +29,8 @@
     <ClInclude Include="CPU_6502.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="deassembler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

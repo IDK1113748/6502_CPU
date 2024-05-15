@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define DEBUG_ASM
+//#define DEBUG_ASM
 
 class assembler
 {
@@ -257,6 +257,8 @@ public:
 					while (whitespace(assembly[ch]))
 						ch++;
 
+					bool jump = (opcode == "JMP" || opcode == "JSR");
+
 					if (opcode[0] == 'B' && opcode != "BRK" && opcode != "BIT")
 						loc++;
 					else
@@ -290,7 +292,7 @@ public:
 
 							}
 
-							if (len <= 2)
+							if (len <= 2 && !jump)
 								loc++;
 							else
 								loc += 2;
@@ -313,7 +315,7 @@ public:
 
 							}
 
-							if (len <= 8)
+							if (len <= 8 && !jump)
 								loc++;
 							else
 								loc += 2;
@@ -330,18 +332,27 @@ public:
 										loc += 2;
 								}
 							}
-							else if(num(assembly[ch]))
+							else if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
 							{
+								bool neg = (assembly[ch] == '-');
+								if (neg)
+									ch++;
+								
 								int len = 0;
-								for (int i = 0; num(assembly[ch + 1 + i]); i++)
+								for (int i = 0; num(assembly[ch + i]); i++)
 									len++;
+								int n = stoi(assembly.substr(ch, len));
 
-								int n = stoi(assembly.substr(ch + 1, len));
-
-								if (n >= 256)
-									loc += 2;
-								else
+								if (!jump && ((n <= 128 && neg) || (n < 256 && !neg)))
+								{
+									std::cout << "l1 " << n << "  ";
 									loc++;
+								}
+								else
+								{
+									std::cout << "l2 " << n << "  ";
+									loc += 2;
+								}
 							}
 						}
 
@@ -397,7 +408,26 @@ public:
 		return n;
 	}
 
-	void assemble(std::string& assembly)
+	void hexdump(int end)
+	{
+		for (int i = 0; i < 32; i++)
+		{
+			for (int j = 0; j < 8; j++)
+			{
+				int index = i * 8 + j;
+				if (index < end)
+					printf("%02x  ", _cpu.RAM[index]);
+				else
+				{
+					printf("\n\n");
+					return;
+				}
+			}
+			printf("\n");
+		}
+	}
+
+	int assemble(std::string& assembly)
 	{
 		preprocess(assembly);
 		collectLabels(assembly);
@@ -539,7 +569,7 @@ public:
 					{
 						am = CPU_6502::impl;
 					}
-					else if (assembly[ch] == '#' || assembly[ch] == '$' || assembly[ch] == '%')
+					else if (assembly[ch] == '#' || assembly[ch] == '$' || assembly[ch] == '%' || num(assembly[ch]) || assembly[ch] == '-')
 					{
 						if (!indirect)
 						{
@@ -671,33 +701,90 @@ public:
 									}
 								}
 
-							break;
+								break;
 							}
-							//default:
-							//{
-							//	if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
-							//	{
-							//		bool neg = (assembly[ch] == '-');
-							//		if(neg)
-							//			ch++;
+						default:
+						{
+							
+							if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
+							{
+								bool neg = (assembly[ch] == '-');
+								if (neg)
+								{
+									std::cout << "neg\n";
+									ch++;
+								}
 
-							//		int len;
-							//		for (int i = 0; num(assembly[ch + i]); i++)
-							//			len++;
+								int len = 0;
+								for (int i = 0; num(assembly[ch + i]); i++)
+									len++;
 
-							//		int n = stoi(assembly.substr(ch, len));
+								int n = stoi(assembly.substr(ch, len));
 
-							//		if (jump || n >= 127 || (n == 128 && neg))
-							//		{
-							//			//wip
-							//		}
-							//	}
-							//}
+								if (!jump && ((n <= 128 && neg) || (n < 256 && !neg)))
+								{
+									nArgs = 1;
+									unsigned char ubyte;
+
+									if (neg)
+									{
+										signed char sbyte = -n;
+										std::cout << "sbyte " << (int)sbyte << " ";
+										ubyte = *(unsigned char*)(&sbyte);
+										std::cout << "ubyte " << (int)ubyte << "\n";
+									}
+									else
+										ubyte = n;
+
+									if (am != CPU_6502::imm && !indirect)
+									{
+										if (Xind)
+											am = CPU_6502::zpg_X;
+										else if (Yind)
+											am = CPU_6502::zpg_Y;
+										else
+											am = CPU_6502::zpg;
+									}
+
+									arg[0] = ubyte;
+								}
+								else
+								{
+									nArgs = 2;
+									unsigned short uword;
+									if (neg)
+									{
+										signed short sword = -n;
+										std::cout << "sword " << sword << " ";
+										uword = *(unsigned short*)(&sword);
+										std::cout << "uword " << (int)uword << "\n";
+									}
+									else
+									{
+										uword = n;
+									}
+
+									if (am != CPU_6502::ind)
+									{
+										if (Xind)
+											am = CPU_6502::abs_X;
+										else if (Yind)
+											am = CPU_6502::abs_Y;
+										else
+											am = CPU_6502::abs;
+									}
+
+									arg[0] = uword & 0xFF;
+									arg[1] = (uword >> 8) & 0xFF;
+								}
+							}
+							break;
+						}
 						}
 					}
 					else if (alpha(assembly[ch]))
 					{
-						if (assembly[ch] == 'A' && !(alphanum(assembly[ch + 1]) || assembly[ch+1] == '_'))
+						if (assembly[ch] == 'A' && !(alphanum(assembly[ch + 1]) || assembly[ch + 1] == '_'))
 						{
 							am = CPU_6502::acc;
 						}
@@ -706,7 +793,7 @@ public:
 							std::string name;
 							for (int i = ch; alphanum(assembly[i]) || assembly[i] == '_'; i++)
 								name += assembly[i];
-							
+
 							bool foundLabel = false;
 							for (const auto& l : labels)
 							{
@@ -719,7 +806,7 @@ public:
 										signed char offset = (signed short)l.val - (signed short)ptr - 2;
 										arg[0] = *(byte*)(&offset);
 									}
-									else 
+									else
 									{
 										if (!indirect)
 										{
@@ -732,7 +819,7 @@ public:
 										}
 
 										nArgs = 2; //Note: data labels cannot be used with the zero page (for example "ADC zpgaddr")
-												   //the absolute opcode will be used wherever a zero-page is detected (with the exception of the indirect zpg, which will not assemble)
+										//the absolute opcode will be used wherever there's a zero-page (with the exception of the indirect zpg, which will not assemble)
 
 										arg[0] = l.val & 0xFF;
 										arg[1] = l.val >> 8;
@@ -774,21 +861,9 @@ public:
 		_cpu.RAM[ptr] = 0x00;
 
 #ifdef DEBUG_ASM
-		for (int i = 0; i < 8; i++)
-		{
-			for (int j = 0; j < 8; j++)
-			{
-				int index = i * 8 + j;
-				if (index < ptr)
-					printf("%02x  ", _cpu.RAM[index]);
-				else
-				{
-					printf("\n\n");
-					return;
-				}
-			}
-			printf("\n");
-		}
+		hexdump(ptr);
 #endif
+
+		return ptr;
 	}
 };

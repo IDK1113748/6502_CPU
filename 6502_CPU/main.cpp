@@ -1,5 +1,6 @@
 #include "CPU_6502.h"
 #include "assembler.h"
+#include "deassembler.h"
 #include <fstream>
 using namespace std;
 
@@ -29,12 +30,15 @@ int main()
 {
 	CPU_6502 cpu;
 	assembler assmer(cpu);
+	deassembler deassmer(cpu);
 
 	string text;
 	while (getProgram(text))
 	{
 		cpu.init();
-		assmer.assemble(text);
+		int size = assmer.assemble(text);
+		cout << deassmer.deassemble(size, false, true);
+		assmer.hexdump(size);
 		//cpu.start();
 	}
 }

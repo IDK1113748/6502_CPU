@@ -23,5 +23,16 @@ ROL A
 ADC $45
 ADC  %01000101
 ADC %101000101
+NOP
+nop
+nOp
+   nop
+LDA #41
+LDA 42
+LDA 256
+LDA #-1
+LDA -128
+LDA -129
+
 label_f:
 BRK
