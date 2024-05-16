@@ -130,7 +130,7 @@ public:
 			break;
 		case CPU_6502::rel:
 		{
-			int num = ptr + *(signed char*)&_cpu.RAM[ptr];
+			int num = ptr + *(signed char*)&_cpu.RAM[ptr] + 1;
 
 			if (decimal)
 			{
@@ -139,7 +139,10 @@ public:
 				else
 				{
 					if (num < 0)
+					{
+						num = -num;
 						line += "-";
+					}
 
 					std::string snum;
 
@@ -203,9 +206,11 @@ public:
 					line += "0";
 				else
 				{
-					// to fix
 					if (num < 0)
+					{
+						num = -num;
 						line += "-";
+					}
 
 					std::string snum;
 

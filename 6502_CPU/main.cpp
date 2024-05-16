@@ -97,7 +97,7 @@ int main()
 		cpu.init();
 
 		if (flag(fshowsource))
-			cout << text;
+			cout << text << "\n";
 
 		int size = assmer.assemble(text);
 
