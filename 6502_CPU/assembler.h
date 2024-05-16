@@ -16,6 +16,14 @@ class assembler
 public:
 	assembler(CPU_6502& cpuRef) : _cpu(cpuRef) {}
 
+	struct address_charLoc {
+		address_charLoc(word _addr, int _charLoc) : addr(_addr), charLoc(_charLoc) {}
+		word addr;
+		int charLoc;
+	};
+
+	std::vector<address_charLoc> assmebledInsts;
+
 	const std::string inst_name_str[57] =
 	{
 		"ADC",
@@ -345,12 +353,10 @@ public:
 
 								if (!jump && ((n <= 128 && neg) || (n < 256 && !neg)))
 								{
-									std::cout << "l1 " << n << "  ";
 									loc++;
 								}
 								else
 								{
-									std::cout << "l2 " << n << "  ";
 									loc += 2;
 								}
 							}
@@ -472,6 +478,8 @@ public:
 
 			if (assembly[ch] != '\n')
 			{
+				assmebledInsts.push_back(address_charLoc(ptr, ch));
+
 				if (assembly[ch] == ';')
 				{
 					while (assembly[ch] != '\n')
@@ -711,7 +719,6 @@ public:
 								bool neg = (assembly[ch] == '-');
 								if (neg)
 								{
-									std::cout << "neg\n";
 									ch++;
 								}
 
@@ -729,9 +736,7 @@ public:
 									if (neg)
 									{
 										signed char sbyte = -n;
-										std::cout << "sbyte " << (int)sbyte << " ";
 										ubyte = *(unsigned char*)(&sbyte);
-										std::cout << "ubyte " << (int)ubyte << "\n";
 									}
 									else
 										ubyte = n;
@@ -755,9 +760,7 @@ public:
 									if (neg)
 									{
 										signed short sword = -n;
-										std::cout << "sword " << sword << " ";
 										uword = *(unsigned short*)(&sword);
-										std::cout << "uword " << (int)uword << "\n";
 									}
 									else
 									{
@@ -859,10 +862,6 @@ public:
 				ch++;
 		}
 		_cpu.RAM[ptr] = 0x00;
-
-#ifdef DEBUG_ASM
-		hexdump(ptr);
-#endif
 
 		return ptr;
 	}
