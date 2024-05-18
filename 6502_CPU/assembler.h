@@ -556,10 +556,10 @@ public:
 					if (!indirect)
 					{
 						for (int j = ch; assembly[j] != '\n' && assembly[j] != ';' && !Yind && !Xind; j++)
-							if (assembly[l] == ',')
+							if (assembly[j] == ',')
 							{
-								for (int i = j; assembly[j] != '\n' && assembly[j] != ';' && !Yind && !Xind; i++)
-									switch (assembly[ch])
+								for (int i = j; assembly[i] != '\n' && assembly[i] != ';' && !Yind && !Xind; i++)
+									switch (assembly[i])
 									{
 									case 'y':
 									case 'Y':

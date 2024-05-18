@@ -1,0 +1,9 @@
+LDA #$40
+STA $372
+
+LDA #$20
+LDX #$2
+ADC $370,X
+STA $372
+
+LDY $372

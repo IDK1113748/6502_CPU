@@ -1,6 +1,7 @@
 #include "CPU_6502.h"
 #include "assembler.h"
 #include "deassembler.h"
+#include "monitor.h"
 #include <fstream>
 using namespace std;
 
@@ -10,7 +11,8 @@ enum flag_types {
 	fdontRun,
 	fdump,
 	fdeassemble,
-	fshowsource
+	fshowsource,
+	fmon
 };
 int flags;
 
@@ -61,6 +63,8 @@ bool getProgram(string& text)
 			case 's':
 				flags |= (1 << fshowsource);
 				break;
+			case 'm':
+				flags |= (1 << fmon);
 			}
 
 			flagStart = input.find('-', flagStart);
@@ -92,6 +96,7 @@ int main()
 	deassembler deassmer(cpu);
 
 	string text;
+	string deassembly;
 	while (getProgram(text))
 	{
 		cpu.init();
@@ -101,13 +106,27 @@ int main()
 
 		int size = assmer.assemble(text);
 
-		if(flag(fdeassemble))
-			cout << deassmer.deassemble(size, flag(fdecimal), flag(fleadingZeroes)) << "\n";
+		if (flag(fdeassemble))
+		{
+			deassembly = deassmer.deassemble(size, flag(fdecimal), flag(fleadingZeroes));
+			cout << deassembly + "\n";
+		}
 		
 		if(flag(fdump))
 			assmer.hexdump(size);
 
-		if(!flag(fdontRun))
-			cpu.start();
+		if (!flag(fdontRun))
+		{
+			if (flag(fmon))
+			{
+				deassembly = deassmer.deassemble(size, flag(fdecimal), flag(fleadingZeroes), true);
+
+				monitor mon(cpu, deassmer, deassembly);
+				if (mon.Construct(1280, 640, 1, 1))
+					mon.Start();
+			}
+			else
+				cpu.start();
+		}
 	}
 }

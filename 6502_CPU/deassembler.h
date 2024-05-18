@@ -108,7 +108,7 @@ public:
 		return hex;
 	}
 
-	std::string deassembleLine(int& ptr, bool& decimal, bool& leadingZeroes)
+	std::string deassembleLine(int& ptr, bool& decimal, bool& leadingZeroes, bool& doubleBreak)
 	{
 		std::string line;
 
@@ -256,10 +256,13 @@ public:
 		}
 		}
 
+		if (doubleBreak)
+			line += "\n";
+
 		return line;
 	}
 
-	std::string deassemble(int endPtr, bool decimal = false, bool leadingZeroes = false)
+	std::string deassemble(int endPtr, bool decimal = false, bool leadingZeroes = false, bool doubleBreak = false)
 	{
 		std::string output;
 
@@ -299,7 +302,7 @@ public:
 				output += "   ";
 			}
 
-			output += " " + deassembleLine(ptr, decimal, leadingZeroes);
+			output += " " + deassembleLine(ptr, decimal, leadingZeroes, doubleBreak);
 		}
 		return output;
 	}

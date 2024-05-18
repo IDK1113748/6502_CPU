@@ -1,23 +1,18 @@
 LDA #$07
 LDY #$04
 JSR mulay
-LDX #$03
+LDY #$03
 JSR mulay
 BRK
 
-mulay:
-PHA
-;STA $ff
+mulay:  ; modifies Y
+STA $ff
 mulay_loop:
 DEY
 BEQ mulay_ret
-;ADC $ff
-TSX
-INX
-ADC $0100,X
+ADC $ff
 JMP mulay_loop
 mulay_ret:
-PLA
 RTS
 
 

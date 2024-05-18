@@ -25,8 +25,6 @@ void CPU_6502::init()
 	rA = 0;
 	rX = 0;
 	rY = 0;
-	//for (int i = 0; i < 0x10000; i++)
-	//	RAM[i] = 0x00;
 }
 
 void CPU_6502::start()
@@ -36,10 +34,6 @@ void CPU_6502::start()
 	{
 		RAM[i] = hex[i];
 	}*/
-	/*RAM[0] = 0x69;
-	RAM[1] = 23;
-	RAM[2] = 0x69;
-	RAM[3] = 12;*/
 
 	int i = 0;
 
@@ -170,10 +164,11 @@ bool CPU_6502::execute()
 
 		bool negA = neg(rA);
 		bool negM = neg(mem);
-		setFlag(fN, neg(res));
+		bool negRes = neg(res);
+		setFlag(fN, negRes);
 		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, (res >> 8));
-		setFlag(fV, ((!fN && negA && negM) || (fN && !negA && !negM)));
+		setFlag(fV, ((!negRes && negA && negM) || (negRes && !negA && !negM)));
 		rA = byte(res & 0xFF);
 
 		return true;
@@ -613,10 +608,11 @@ bool CPU_6502::execute()
 
 		bool negA = neg(rA);
 		bool negM = neg(mem);
-		setFlag(fN, neg(res));
+		bool negRes = neg(res);
+		setFlag(fN, negRes);
 		setFlag(fZ, ((res & 0xFF) == 0));
 		setFlag(fC, !(res >> 8));
-		setFlag(fV, ((!fN && negA && negM) || (fN && !negA && !negM)));
+		setFlag(fV, ((!negRes && negA && negM) || (negRes && !negA && !negM)));
 		rA = byte(res & 0xFF);
 
 		return true;
