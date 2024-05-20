@@ -84,7 +84,7 @@ public:
 		"TYA",
 		"err" };
 
-	int ptr = 0;
+	int ptr = 0x200;
 
 	/*RULES:
 	definitions must be declared before any occurence
@@ -200,7 +200,7 @@ public:
 	{
 		labels.clear();
 		int ch = 0;
-		int loc = 0;
+		int loc = 0x200;
 
 		while (ch < assembly.length())
 		{
@@ -422,7 +422,7 @@ public:
 			{
 				int index = i * 8 + j;
 				if (index < end)
-					printf("%02x  ", _cpu.RAM[index]);
+					printf("%02x  ", _cpu.RAM[0x200 + index]);
 				else
 				{
 					printf("\n\n");
@@ -439,7 +439,7 @@ public:
 		collectLabels(assembly);
 
 		int ch = 0;
-		int ptr = 0;
+		int ptr = 0x200;
 
 		while (ch < assembly.length())
 		{
@@ -863,6 +863,6 @@ public:
 		}
 		_cpu.RAM[ptr] = 0x00;
 
-		return ptr;
+		return ptr - 0x200;
 	}
 };

@@ -21,10 +21,13 @@ void CPU_6502::init()
 	rS = 0x2;
 	rSP = 0xFF;
 
-	rPC = 0;
+	rPC = 0x200;
 	rA = 0;
 	rX = 0;
 	rY = 0;
+
+	for (int i = 0x8000; i < 0x8400; i++)
+		RAM[i] = 0;
 }
 
 void CPU_6502::start()
@@ -147,13 +150,16 @@ word CPU_6502::fetch(addressing_mode addr, bool incPC)
 	}
 }
 
-bool CPU_6502::execute()
+bool CPU_6502::execute(bool* VRAM_W)
 {
 	word opcode = RAM[rPC++];
 	int lo = opcode & 15;
 	int hi = (opcode >> 4) & 15;
 
 	addressing_mode addr = INSTS[hi][lo].Addr;
+
+	if (VRAM_W != nullptr)
+		*VRAM_W = false;
 
 	switch (INSTS[hi][lo].name)
 	{
@@ -518,7 +524,7 @@ bool CPU_6502::execute()
 	case PHP:
 	{
 		setFlag(f_, 1);
-		RAM[rSP--] = rS;
+		RAM[0x100 + rSP--] = rS;
 
 		return true;
 	}
@@ -641,7 +647,14 @@ bool CPU_6502::execute()
 
 	case STA:
 	{
-		RAM[fetch(addr)] = rA;
+		word a = fetch(addr);
+		RAM[a] = rA;
+
+		if (VRAM_W != nullptr)
+		{
+			if (a >= 0x8000 && a < 0x8400)
+				*VRAM_W = true;
+		}
 
 		return true;
 	}
@@ -682,7 +695,7 @@ bool CPU_6502::execute()
 
 	case TSX:
 	{
-		rX = rS;
+		rX = rSP;
 
 		setFlag(fN, (rX >> 7));
 		setFlag(fZ, (rX == 0));
@@ -702,7 +715,7 @@ bool CPU_6502::execute()
 
 	case TXS:
 	{
-		rS = rX;
+		rSP = rX;
 
 		setFlag(fN, (rS >> 7));
 		setFlag(fZ, (rS == 0));

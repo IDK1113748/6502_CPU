@@ -955,6 +955,9 @@ namespace olc
 	static std::unique_ptr<Platform> platform;
 	static std::map<size_t, uint8_t> mapKeys;
 
+	static unsigned int LastKeyPressed = 0;
+	static unsigned int LastKeyPressedOld = 0;
+
 	// O------------------------------------------------------------------------------O
 	// | olc::PixelGameEngine - The main BASE class for your application              |
 	// O------------------------------------------------------------------------------O
@@ -1033,6 +1036,12 @@ namespace olc
 		// Gets any files dropped this frame
 		const std::vector<std::string>& GetDroppedFiles() const;
 		const olc::vi2d& GetDroppedFilesPoint() const;
+
+		bool AnyKeyHeld() const;
+		bool AnyKeyPressed() const;
+		olc::Key GetLastKeyPressed();
+		bool pAnyKeyHeld = false;
+		bool pAnyKeyPressed = false;
 
 	public: // CONFIGURATION ROUTINES
 		// Layer targeting functions
@@ -2137,6 +2146,17 @@ namespace olc
 
 	const olc::vi2d& PixelGameEngine::GetWindowMouse() const
 	{ return vMouseWindowPos; }
+
+	bool PixelGameEngine::AnyKeyHeld() const 
+	{ return pAnyKeyHeld; }
+
+	bool PixelGameEngine::AnyKeyPressed() const
+	{ return /*LastKeyPressed != LastKeyPressedOld*/ pAnyKeyPressed; }
+
+	olc::Key  PixelGameEngine::GetLastKeyPressed()
+	{
+		return (olc::Key)LastKeyPressed;
+	}
 
 	bool PixelGameEngine::Draw(const olc::vi2d& pos, Pixel p)
 	{ return Draw(pos.x, pos.y, p); }
@@ -3820,6 +3840,9 @@ namespace olc
 
 	void PixelGameEngine::olc_CoreUpdate()
 	{
+		pAnyKeyHeld = false;
+		pAnyKeyPressed = false;
+
 		// Handle Timing
 		m_tp2 = std::chrono::system_clock::now();
 		std::chrono::duration<float> elapsedTime = m_tp2 - m_tp1;
@@ -3847,6 +3870,11 @@ namespace olc
 					if (pStateNew[i])
 					{
 						pKeys[i].bPressed = !pKeys[i].bHeld;
+						if (pKeys[i].bPressed)
+						{
+							LastKeyPressed = i;
+							pAnyKeyPressed = true;
+						}
 						pKeys[i].bHeld = true;
 					}
 					else
@@ -3856,6 +3884,10 @@ namespace olc
 					}
 				}
 				pStateOld[i] = pStateNew[i];
+
+				if(pKeys == pKeyboardState)
+					pAnyKeyHeld = pAnyKeyHeld || pStateNew[i];
+				
 			}
 		};
 
@@ -3882,7 +3914,7 @@ namespace olc
 		if (!bExtensionBlockFrame)
 		{
 			if (!OnUserUpdate(fElapsedTime)) bAtomActive = false;
-			
+			LastKeyPressedOld = LastKeyPressed;
 		}
 		for (auto& ext : vExtensions) ext->OnAfterUserUpdate(fElapsedTime);
 

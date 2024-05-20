@@ -35,6 +35,9 @@
     <ClInclude Include="deassembler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="dmonitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="monitor.h">
       <Filter>Header Files</Filter>
     </ClInclude>

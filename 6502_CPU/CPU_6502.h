@@ -150,7 +150,7 @@ public:
 
 	word fetch(addressing_mode addr, bool incPC = true);
 
-	bool execute();
+	bool execute(bool* VRAM_W = nullptr);
 };
 
 #endif //CPU_H

@@ -1,0 +1,26 @@
+define cA #$41
+define cH #$48
+define cSP #$20
+define MON $8000
+
+LDX #$0
+
+loop:
+LDA cH
+STA MON, X
+INX
+
+LDA cA
+STA MON, X
+INX
+
+LDA cSP
+STA MON, X
+INX
+
+CPX #$69
+BEQ exit
+JMP loop
+
+exit:
+BRK

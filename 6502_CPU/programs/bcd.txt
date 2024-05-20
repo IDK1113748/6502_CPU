@@ -1,0 +1,51 @@
+	define INL $02
+	define INH $03
+	define OUTL $0
+	define OUTH $1
+
+	lda #$3F
+	sta INL
+	lda #$09
+	sta INH
+	
+	lda #0
+	sta OUTL
+	sta OUTH
+
+	ldx #0
+	
+	clc
+	php
+
+	ldy #0
+loop:
+	cpy #16
+	beq exit_loop
+	plp
+	
+	rol INL
+	rol INH
+	rol OUTL
+	rol OUTH
+	
+	lda OUTL
+	sec
+	sbc #10
+	php
+
+	bcc skip_storing
+	STA OUTL
+skip_storing:
+	
+	iny
+	jmp loop
+exit_loop:
+	plp
+	
+	rol INL
+	rol INH
+	
+	lda OUTL
+	sta $10,X
+	inx
+	

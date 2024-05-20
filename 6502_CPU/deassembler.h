@@ -266,7 +266,7 @@ public:
 	{
 		std::string output;
 
-		int ptr = 0;
+		int ptr = 0x200;
 
 		while (ptr != endPtr)
 		{

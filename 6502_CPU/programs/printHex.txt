@@ -6,30 +6,10 @@ STA zero_literal
 LDA #$41
 STA A_literal
 
-define fib_a $fa
-define fib_b $fb
-define fib_c $fc
 LDY #0
-
-LDA #$00
-STA fib_a
-STA fib_c
-LDA #$01
-STA fib_b
-loop:
-BCS end
+LDA #$bc
 JSR printA
-LDA fib_a
-STA fib_c
-LDA fib_b
-STA fib_a
-CLC
-ADC fib_c
-STA fib_b
-JMP loop
-end:
 BRK
-
 
 printA: ; modifies Y (vram ptr) and X
 PHA
@@ -37,6 +17,7 @@ LSR A
 LSR A
 LSR A
 LSR A
+
 CMP #10
 CLC
 BMI printA_zero1
@@ -70,6 +51,5 @@ INY
 LDA #$20
 STA MON,Y
 INY
-
 PLA
 RTS
