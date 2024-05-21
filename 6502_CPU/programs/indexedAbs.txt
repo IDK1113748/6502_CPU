@@ -1,0 +1,8 @@
+lda #$10
+ldx #0
+sta $5,X
+ldy #1
+sta $5,Y
+label:
+brk
+jmp label

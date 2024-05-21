@@ -13,14 +13,15 @@
 	sta OUTH
 
 	ldx #0
-	
+
+bcd_main_loop:
 	clc
 	php
 
 	ldy #0
-loop:
+bcd_loop:
 	cpy #16
-	beq exit_loop
+	beq bcd_exit_loop
 	plp
 	
 	rol INL
@@ -33,19 +34,41 @@ loop:
 	sbc #10
 	php
 
-	bcc skip_storing
+	bcc bcd_skip_storing
 	STA OUTL
-skip_storing:
+bcd_skip_storing:
 	
 	iny
-	jmp loop
-exit_loop:
+	jmp bcd_loop
+bcd_exit_loop:
 	plp
 	
 	rol INL
 	rol INH
 	
+	txa
+	lsr A
+	tay
 	lda OUTL
-	sta $10,X
+	bcc bcd_skip_store_Hnibble
+	asl A
+	asl A
+	asl A
+	asl A
+	ora $10,Y
+bcd_skip_store_Hnibble:
+	sta $10,Y
 	inx
+	
+	lda INH
+	ora INL
+	beq bcd_exit
+
+	lda #0
+	sta OUTH
+	sta OUTL
+	jmp bcd_main_loop
+
+bcd_exit:
+	brk
 	

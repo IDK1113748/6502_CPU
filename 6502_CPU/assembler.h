@@ -267,6 +267,18 @@ public:
 
 					bool jump = (opcode == "JMP" || opcode == "JSR");
 
+					bool Yind = false;
+					for (int i = ch; assembly[i] != ';' && assembly[i] != '\n' && !Yind; i++)
+					{
+						if(assembly[i] == ',')
+							for (int j = i+1; assembly[j] != ';' && assembly[j] != '\n' && !Yind; j++)
+							{
+								if (assembly[j] == 'y' || assembly[j] == 'Y')
+									Yind = true;
+							}
+					}
+					bool mustBeDouble = (jump || (Yind && !(opcode == "LDX" || opcode == "STX")));
+
 					if (opcode[0] == 'B' && opcode != "BRK" && opcode != "BIT")
 						loc++;
 					else
@@ -300,7 +312,7 @@ public:
 
 							}
 
-							if (len <= 2 && !jump)
+							if (len <= 2 && !mustBeDouble)
 								loc++;
 							else
 								loc += 2;
@@ -323,7 +335,7 @@ public:
 
 							}
 
-							if (len <= 8 && !jump)
+							if (len <= 8 && !mustBeDouble)
 								loc++;
 							else
 								loc += 2;
@@ -351,7 +363,7 @@ public:
 									len++;
 								int n = stoi(assembly.substr(ch, len));
 
-								if (!jump && ((n <= 128 && neg) || (n < 256 && !neg)))
+								if (!mustBeDouble && ((n <= 128 && neg) || (n < 256 && !neg)))
 								{
 									loc++;
 								}
@@ -836,6 +848,13 @@ public:
 							if (!foundLabel)
 								std::cout << "WARNING: Label \"" << name << "\" not found.\n";
 						}
+					}
+
+					if (am == CPU_6502::zpg_Y && enum_name != CPU_6502::STX && enum_name != CPU_6502::LDX)
+					{
+						nArgs = 2;
+						arg[1] = 0;
+						am = CPU_6502::abs_Y;
 					}
 
 					for (int i = 0; i < 16; i++)

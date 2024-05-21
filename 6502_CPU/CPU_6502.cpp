@@ -516,7 +516,8 @@ bool CPU_6502::execute(bool* VRAM_W)
 
 	case PHA:
 	{
-		RAM[0x0100 + rSP--] = rA;
+		RAM[0x0100 + rSP] = rA;
+		rSP--;
 
 		return true;
 	}
@@ -524,14 +525,16 @@ bool CPU_6502::execute(bool* VRAM_W)
 	case PHP:
 	{
 		setFlag(f_, 1);
-		RAM[0x100 + rSP--] = rS;
+		RAM[0x100 + rSP] = rS;
+		rSP--;
 
 		return true;
 	}
 
 	case PLA:
 	{
-		rA = RAM[0x0100 + rSP++];
+		rSP++;
+		rA = RAM[0x0100 + rSP];
 
 		setFlag(fN, (rA >> 7));
 		setFlag(fZ, (rA == 0));
@@ -541,7 +544,8 @@ bool CPU_6502::execute(bool* VRAM_W)
 
 	case PLP:
 	{
-		rS = RAM[0x0100 + rSP++];
+		rSP++;
+		rS = RAM[0x0100 + rSP];
 
 		return true;
 	}
