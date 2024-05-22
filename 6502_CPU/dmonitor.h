@@ -6,7 +6,7 @@
 class dmonitor : public olc::PixelGameEngine
 {
 public:
-	dmonitor(CPU_6502& cpuRef, deassembler deasmRef, std::string& deassemblyRef) : _cpu(cpuRef), _deasm(deasmRef), _deassembly(deassemblyRef)
+	dmonitor(CPU_6502& cpuRef, deassembler& deasmRef, std::string& deassemblyRef) : _cpu(cpuRef), _deasm(deasmRef), _deassembly(deassemblyRef)
 	{
 		sAppName = "6502 debug monitor";
 	}
@@ -35,10 +35,16 @@ private:
 
 	}
 
-	void drawInternalStatus()
+	void drawPC()
 	{
 		DrawString({ 704, 64 }, "PC", olc::WHITE, 4);
 		DrawString({ 672, 128 }, _deasm.itohex(_cpu.rPC, true, true), olc::WHITE, 4);
+
+	}
+
+	void drawInternalStatus()
+	{
+		drawPC();
 
 		DrawString({ 672, 192 }, "A " + _deasm.itohex(_cpu.rA, false, true), olc::WHITE, 4);
 
@@ -75,7 +81,7 @@ private:
 		}
 	}
 
-	unsigned int line = 0;
+	int line = 0;
 	int startDeasm;
 	int lenDeasm;
 
@@ -84,7 +90,13 @@ private:
 		if (lenDeasm == 0)
 			return;
 
-		DrawString({ 872, 56 }, _deassembly.substr(startDeasm, lenDeasm), olc::WHITE, 1);
+		for(const auto& i : breakpoints)
+		{
+			if (i >= line/2 && i < line/2 + 16)
+				FillCircle({ 882 , 59 + 16*(i-line/2)}, 5, olc::RED);
+		}
+
+		DrawString({ 892, 56 }, _deassembly.substr(startDeasm, lenDeasm), olc::WHITE, 1);
 	}
 
 	unsigned char page = 0;
@@ -154,16 +166,18 @@ private:
 		return true;
 	}
 
-	float waitTime = 0.01f;
+	float waitTime = 0.1f;
 	float timePassed = 0.0f;
 
 	bool run = false;
+
+	std::vector<int> breakpoints;
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		bool redraw = false;
 		timePassed += fElapsedTime;
-
+		
 		if (GetKey(olc::Key::R).bPressed)
 		{
 			_cpu.init();
@@ -178,14 +192,18 @@ private:
 
 		if (run)
 		{
-			if (timePassed > waitTime)
+			do
 			{
-				timePassed = 0.0f;
-				redraw = true;
+				for (const auto& brkpt : breakpoints)
+					if (_deasm.assembledInsts[brkpt] == _cpu.rPC)
+					{
+						run = false;
+						break;
+					}
 
-				if(!_cpu.execute())
-					run = false;
-			}
+			} while (run && _cpu.execute());
+			run = false;
+			redraw = true;
 		}
 		else
 		{
@@ -197,6 +215,33 @@ private:
 			}
 		}
 
+		if (GetMouse(0).bPressed)
+		{
+			olc::vi2d mousePos = GetMousePos();
+			
+			if (mousePos.x >= 864 && mousePos.x <= 864 + 392 && mousePos.y >= 48 && mousePos.y <= 48 + 296)
+			{
+				int l;
+				l = (mousePos.y - 48) / 16 + line / 2;
+				std::cout << l << "\n";
+				bool found = false;
+			
+				for (auto i = breakpoints.begin(); i != breakpoints.end(); i++)
+				{
+					if (*i == l)
+					{
+						found = true;
+						breakpoints.erase(i);
+						break;
+					}
+				}
+				if(!found)
+					breakpoints.push_back(l);
+				redraw = true;
+			}
+
+		}
+		
 		int mouseWheel = GetMouseWheel();
 		if (mouseWheel != 0)
 		{
@@ -250,10 +295,10 @@ private:
 			page++;
 			redraw = true;
 		}
-
+		
 		if (redraw)
 			drawAll();
-
+	
 		return true;
 	}
 };

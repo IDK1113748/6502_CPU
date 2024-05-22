@@ -16,14 +16,6 @@ class assembler
 public:
 	assembler(CPU_6502& cpuRef) : _cpu(cpuRef) {}
 
-	struct address_charLoc {
-		address_charLoc(word _addr, int _charLoc) : addr(_addr), charLoc(_charLoc) {}
-		word addr;
-		int charLoc;
-	};
-
-	std::vector<address_charLoc> assmebledInsts;
-
 	const std::string inst_name_str[57] =
 	{
 		"ADC",
@@ -490,7 +482,6 @@ public:
 
 			if (assembly[ch] != '\n')
 			{
-				assmebledInsts.push_back(address_charLoc(ptr, ch));
 
 				if (assembly[ch] == ';')
 				{

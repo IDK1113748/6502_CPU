@@ -71,6 +71,14 @@ public:
 		"TYA",
 		"err" };
 
+	//struct address_charLoc {
+	//	address_charLoc(word _addr, int _charLoc) : addr(_addr), charLoc(_charLoc) {}
+	//	word addr;
+	//	int charLoc;
+	//};
+
+	std::vector<int> assembledInsts;
+	
 	std::string itohex(word u_num, bool doubleBytes, bool leadingZeroes)
 	{
 		std::string hex;
@@ -262,8 +270,11 @@ public:
 		return line;
 	}
 
+	bool deassembled = false;
+
 	std::string deassemble(int endPtr, bool decimal = false, bool leadingZeroes = false, bool doubleBreak = false)
 	{
+		deassembled = true;
 		std::string output;
 
 		int ptr = 0x200;
@@ -302,6 +313,7 @@ public:
 				output += "   ";
 			}
 
+			assembledInsts.push_back(ptr);
 			output += " " + deassembleLine(ptr, decimal, leadingZeroes, doubleBreak);
 		}
 		return output;
