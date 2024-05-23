@@ -18,13 +18,10 @@ CPU_6502::~CPU_6502()
 
 void CPU_6502::init()
 {
-	rS = 0x2;
 	rSP = 0xFF;
+	setFlag(fI, 0);
 
 	rPC = 0x200;
-	rA = 0;
-	rX = 0;
-	rY = 0;
 
 	for (int i = 0x8000; i < 0x8400; i++)
 		RAM[i] = 0;
@@ -40,7 +37,7 @@ void CPU_6502::start()
 
 	int i = 0;
 
-	while (execute() && i < 100)
+	while (execute() && i < 5000)
 	{
 		std::printf("%3d. PC: %02x A: %02x X: %02x Y: %02x SP: %02x P: ", i, rPC, rA, rX, rY, rSP);
 		for (int i = 0; i < 8; i++)

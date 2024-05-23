@@ -3,15 +3,15 @@
 ; Returns with ERROR = 0 if the test passes, ERROR = 1 if the test fails
 ;
 ; Four additional memory locations are used: ERROR, N1, N2, and SNZC
-; These may be located anywhere convenient in RAM
-;
-define ERROR $ff
+; :These may be located anywhere convenient in RAM
+;:
+define ERTOR $ff
 define N1 $fe
 define N2 $fd
 define SNZC $fc
 TEST:  CLD       ; just in case
       LDA #1    ; store 1 in ERROR until the test passes
-      STA ERROR
+      STA ERTOR
       LDA #0    ; initialize N1 and N2
       STA N1
       STA N2
@@ -36,5 +36,5 @@ TEST1: LDA N1
       INC N1
       BNE TEST1
       LDA #0    ; the test passes, so store 0 in ERROR
-      STA ERROR
+      STA ERTOR
 TEST2: BRK

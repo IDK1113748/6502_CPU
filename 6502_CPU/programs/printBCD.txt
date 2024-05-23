@@ -3,11 +3,49 @@
 	define OUTL $0
 	define OUTH $1
 
-	lda #$5B
+	lda #$31
 	sta INL
-	lda #$03
+	lda #$04
 	sta INH
+	jsr bcd
+	jsr print_bcd
+	brk
 	
+print_bcd:
+	ldx #0
+	bcs print_bcd_loop ; even number of digits
+	
+	lda $10,Y
+	adc #$30
+	sta $8000, X
+	inx
+	dey
+	
+print_bcd_loop:
+	cpy #0
+	bmi print_bcd_exit
+	lda $10,Y
+	lsr A
+	lsr A
+	lsr A
+	lsr A
+	clc
+	adc #$30
+	sta $8000, X
+	inx
+	lda $10,Y
+	and #$f
+	clc
+	adc #$30
+	sta $8000, X
+	inx
+	dey
+	jmp print_bcd_loop
+print_bcd_exit:
+	rts
+
+
+bcd:
 	lda #0
 	sta OUTL
 	sta OUTH
@@ -35,7 +73,7 @@ bcd_loop:
 	php
 
 	bcc bcd_skip_storing
-	STA OUTL
+	sta OUTL
 bcd_skip_storing:
 	
 	iny
@@ -70,5 +108,5 @@ bcd_skip_store_Hnibble:
 	jmp bcd_main_loop
 
 bcd_exit:
-	brk
+	rts
 	

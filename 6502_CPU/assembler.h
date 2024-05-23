@@ -202,7 +202,7 @@ public:
 			bool isDefinition = false;
 			if (assembly[ch] == 'd' && ch + 7 < assembly.length())
 			{
-				if (assembly.substr(++ch, 6) == "efine ")
+				if (assembly.substr(ch+1, 6) == "efine ")
 				{
 					isDefinition = true;
 				}
@@ -217,9 +217,17 @@ public:
 
 			bool isLabel = false;
 			int l;
-			for (l = ch; assembly[l] != '\n' && !isLabel; l++)
+			for (l = ch; assembly[l] != '\n' && assembly[l] != ';' && !isLabel; l++)
 				if (assembly[l] == ':')
 					isLabel = true;
+
+			if (assembly[l] == ';')
+			{
+				while (assembly[ch] != '\n')
+					ch++;
+				ch++;
+				continue;
+			}
 
 			l--;
 			if (isLabel)
@@ -453,7 +461,7 @@ public:
 			bool isDefinition = false;
 			if (assembly[ch] == 'd' && ch + 7 < assembly.length())
 			{
-				if (assembly.substr(++ch, 6) == "efine ")
+				if (assembly.substr(ch+1, 6) == "efine ")
 				{
 					isDefinition = true;
 				}
@@ -468,7 +476,7 @@ public:
 
 			bool isLabel = false;
 			int l;
-			for (l = ch; assembly[l] != '\n' && !isLabel; l++)
+			for (l = ch; assembly[l] != '\n' && assembly[l] != ';' && !isLabel; l++)
 				if (assembly[l] == ':')
 					isLabel = true;
 			l--;

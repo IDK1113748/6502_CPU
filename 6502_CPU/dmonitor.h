@@ -184,15 +184,18 @@ private:
 			redraw = true;
 		}
 
+		bool canContinue = false;
+
 		if (GetKey(olc::Key::SPACE).bPressed)
 		{
+			canContinue = true;
 			timePassed = 0.0f;
 			run = !run;
 		}
 
 		if (run)
 		{
-			do
+			while (run && _cpu.execute())
 			{
 				for (const auto& brkpt : breakpoints)
 					if (_deasm.assembledInsts[brkpt] == _cpu.rPC)
@@ -201,17 +204,33 @@ private:
 						break;
 					}
 
-			} while (run && _cpu.execute());
+			}
 			run = false;
 			redraw = true;
 		}
 		else
 		{
-			if (GetKey(olc::Key::E).bPressed)
+			if (GetKey(olc::Key::I).bPressed)
 			{
 				redraw = true;
 
 				_cpu.execute();
+			}
+
+			if (GetKey(olc::Key::O).bPressed)
+			{
+				redraw = true;
+
+				if (_cpu.RAM[_cpu.rPC] == 0x20) // 20 = JSR
+				{
+					std::cout << "subroutine \n";
+					do {
+						_cpu.execute();
+					} while (_cpu.RAM[_cpu.rPC] != 0x60); // 60 = RTS
+					_cpu.execute();
+				}
+				else
+					_cpu.execute();
 			}
 		}
 

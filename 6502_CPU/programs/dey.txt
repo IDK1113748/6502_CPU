@@ -1,0 +1,3 @@
+ldy #3
+dey
+tya

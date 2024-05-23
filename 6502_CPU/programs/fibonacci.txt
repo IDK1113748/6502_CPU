@@ -10,12 +10,14 @@ define fib_a $fa
 define fib_b $fb
 define fib_c $fc
 LDY #0
+LDX #0
 
 LDA #$00
 STA fib_a
 STA fib_c
 LDA #$01
 STA fib_b
+CLC
 loop:
 BCS end
 JSR printA
