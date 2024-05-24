@@ -3,17 +3,20 @@
 	define OUTL $0
 	define OUTH $1
 
-	lda #$25
+	lda #$24
 	sta INL
-	lda #$01
+	lda #$55
 	sta INH
 	jsr bcd
 	jsr print_bcd
 	brk
-	
+
+; The carry flag determines whether to print an even number of digits or not
+; Modifies: the monitor, P with N=1,
+;           X=nOfDigitsPrinted, Y=-1, A=ASCII value of last digit
 print_bcd:
 	ldx #0
-	bcs print_bcd_loop ; even number of digits
+	bcs print_bcd_loop ; carry is set, so an even number of digits
 	
 	lda $10,Y
 	adc #$30
@@ -44,7 +47,9 @@ print_bcd_loop:
 print_bcd_exit:
 	rts
 
-
+; Modifies: RAM[10]-RAM[10+Y] = bcd in little-endian format,
+;           A=0, X=nOfDigits, Y=(X-1)/2=nOfBytesUsed-1
+;           P with N=0 and C=(even number of digits ? 1 : 0)
 bcd:
 	lda #0
 	sta OUTL
@@ -85,7 +90,7 @@ bcd_exit_loop:
 	rol INH
 	
 	txa
-	lsr A
+	lsr A ; divides the index for where we put the digit by 2. Carry flag is set if it must be stored in the high nibble
 	tay
 	lda OUTL
 	php
