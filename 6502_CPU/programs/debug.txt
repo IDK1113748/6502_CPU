@@ -1,0 +1,15 @@
+l0: ldx #$0
+l1: bcs l2 ; Comment
+l2: lda $10, Y
+l3: adc #$30
+l4: sta $8000, X
+l5: inx
+l6: dey
+
+bcc l0
+bcc l1
+bcc l2
+bcc l3
+bcc l4
+bcc l5
+bcc l6

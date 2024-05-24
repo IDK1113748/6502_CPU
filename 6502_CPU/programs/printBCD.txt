@@ -3,9 +3,9 @@
 	define OUTL $0
 	define OUTH $1
 
-	lda #$31
+	lda #$25
 	sta INL
-	lda #$04
+	lda #$01
 	sta INH
 	jsr bcd
 	jsr print_bcd
@@ -88,6 +88,7 @@ bcd_exit_loop:
 	lsr A
 	tay
 	lda OUTL
+	php
 	bcc bcd_skip_store_Hnibble
 	asl A
 	asl A
@@ -101,6 +102,7 @@ bcd_skip_store_Hnibble:
 	lda INH
 	ora INL
 	beq bcd_exit
+	plp
 
 	lda #0
 	sta OUTH
@@ -108,5 +110,6 @@ bcd_skip_store_Hnibble:
 	jmp bcd_main_loop
 
 bcd_exit:
+	plp
 	rts
 	

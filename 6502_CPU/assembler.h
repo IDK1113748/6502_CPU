@@ -221,14 +221,6 @@ public:
 				if (assembly[l] == ':')
 					isLabel = true;
 
-			if (assembly[l] == ';')
-			{
-				while (assembly[ch] != '\n')
-					ch++;
-				ch++;
-				continue;
-			}
-
 			l--;
 			if (isLabel)
 			{
