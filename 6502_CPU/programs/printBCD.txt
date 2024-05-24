@@ -8,14 +8,16 @@
 	lda #$55
 	sta INH
 	jsr bcd
+	ldx #0
 	jsr print_bcd
 	brk
 
-; The carry flag determines whether to print an even number of digits or not
-; Modifies: the monitor, P with N=1,
-;           X=nOfDigitsPrinted, Y=-1, A=ASCII value of last digit
+; Arguments: RAM[10]-RAM[10+Y] = bcd in little-endian format
+;            The carry flag (determines whether to print an even number of digits or not)
+;            X = pointer to where to print in the monitor's first page
+; Modifies : the monitor, P with N=1,
+;            X=nOfDigitsPrinted, Y=-1, A=ASCII value of last digit
 print_bcd:
-	ldx #0
 	bcs print_bcd_loop ; carry is set, so an even number of digits
 	
 	lda $10,Y
@@ -47,7 +49,9 @@ print_bcd_loop:
 print_bcd_exit:
 	rts
 
+; Arguments: INL and INH (unsigned short)
 ; Modifies: RAM[10]-RAM[10+Y] = bcd in little-endian format,
+;           RAM[INL,INH,OUTL,OUTH],
 ;           A=0, X=nOfDigits, Y=(X-1)/2=nOfBytesUsed-1
 ;           P with N=0 and C=(even number of digits ? 1 : 0)
 bcd:
