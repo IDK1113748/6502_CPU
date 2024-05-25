@@ -50,10 +50,10 @@ print_bcd_exit:
 	rts
 
 ; Arguments: INL and INH (unsigned short)
-; Modifies: RAM[10]-RAM[10+Y] = bcd in little-endian format,
-;           RAM[INL,INH,OUTL,OUTH],
-;           A=0, X=nOfDigits, Y=(X-1)/2=nOfBytesUsed-1
-;           P with N=0 and C=(even number of digits ? 1 : 0)
+; Modifies : RAM[10]-RAM[10+Y] = bcd in little-endian format,
+;            RAM[INL,INH,OUTL,OUTH],
+;            A=0, X=nOfDigits, Y=(X-1)/2=nOfBytesUsed-1
+;            P with N=0 and C=(even number of digits ? 1 : 0)
 bcd:
 	lda #0
 	sta OUTL

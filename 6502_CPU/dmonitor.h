@@ -24,6 +24,8 @@ private:
 
 		FillRect({ 864, 48 }, { 392, 296 }, olc::BLACK);
 
+		FillRect({ 1236, 48 }, { 20, 296 }, olc::GREY);
+
 		FillRect({ 864, 368 }, { 392, 16 }, olc::PixelF(0.35f, 0.35f, 0.35f));
 		FillRect({ 864, 384 }, { 392, 208 }, olc::PixelF(0.20f, 0.20f, 0.20f));
 		for(int i = 0; i < 4; i++)
@@ -90,13 +92,17 @@ private:
 		if (lenDeasm == 0)
 			return;
 
+		int currentLine = std::lower_bound(_deasm.assembledInsts.begin(), _deasm.assembledInsts.end(), _cpu.rPC) - _deasm.assembledInsts.begin();
+		if (currentLine >= line / 2 && currentLine < line / 2 + 16)
+			DrawLine({ 875 , 59 + 16 * (currentLine - line / 2) }, { 890 , 59 + 16 * (currentLine - line / 2) }, olc::YELLOW);
+		std::cout << currentLine << "\n";
 		for(const auto& i : breakpoints)
 		{
 			if (i >= line/2 && i < line/2 + 16)
-				FillCircle({ 882 , 59 + 16*(i-line/2)}, 5, olc::RED);
+				FillCircle({ 897 , 59 + 16*(i-line/2)}, 5, olc::RED);
 		}
 
-		DrawString({ 892, 56 }, _deassembly.substr(startDeasm, lenDeasm), olc::WHITE, 1);
+		DrawString({ 912, 56 }, _deassembly.substr(startDeasm, lenDeasm), olc::WHITE, 1);
 	}
 
 	unsigned char page = 0;
@@ -104,23 +110,41 @@ private:
 	void drawMonitor()
 	{
 		std::string monitorText;
+		int ch = 0;
 		for (int i = 0; i < 32; i++)
 		{
 			for (int j = 0; j < 32; j++)
 			{
+				ch++;
+				if (ch == 32)
+				{
+					monitorText += "\n";
+					ch = 0;
+				}
 				char c = _cpu.RAM[0x8000 + i * 32 + j];
 
-				if (c >= 32 && c <= 127)
+				if (c >= 32 && c <= 127 || c == '\n')
+				{
 					monitorText += c;
+					if (c == '\n')
+					{
+						ch = 0;
+					}
+				}
 				else
 					monitorText += '\0';
 			}
 		}
 
-		int ch;
-		for (ch = 0; 32*ch < monitorText.size() - 32; ch++)
-			DrawString({ 48, 64 + 16 * ch }, monitorText.substr(32 * ch, 32), olc::WHITE, 2);
-		DrawString({ 48, 64 + 16 * ch }, monitorText.substr(32 * ch, monitorText.size() - 32 * ch));
+		int begin = 0;
+		std::size_t nextNewline = monitorText.find('\n');
+		for(int l = 0; nextNewline != std::string::npos && l < 25; l++)
+		{
+			DrawString({ 48, 64 + 20 * l }, monitorText.substr(begin, nextNewline-begin), olc::WHITE, 2);
+
+			begin = nextNewline+1;
+			nextNewline = monitorText.find('\n', begin);
+		}
 	}
 
 	void drawAll()
@@ -221,12 +245,21 @@ private:
 			{
 				redraw = true;
 
+				int functionCalls = 0;
+
 				if (_cpu.RAM[_cpu.rPC] == 0x20) // 20 = JSR
 				{
-					std::cout << "subroutine \n";
 					do {
 						_cpu.execute();
-					} while (_cpu.RAM[_cpu.rPC] != 0x60); // 60 = RTS
+						if (_cpu.RAM[_cpu.rPC] == 0x20)
+						{
+							functionCalls++;
+						}
+						else if (_cpu.RAM[_cpu.rPC] == 0x60)
+						{
+							functionCalls--;
+						}
+					} while (_cpu.RAM[_cpu.rPC] != 0x60 || functionCalls >= 0); // 60 = RTS
 					_cpu.execute();
 				}
 				else
@@ -242,7 +275,6 @@ private:
 			{
 				int l;
 				l = (mousePos.y - 48) / 16 + line / 2;
-				std::cout << l << "\n";
 				bool found = false;
 			
 				for (auto i = breakpoints.begin(); i != breakpoints.end(); i++)
