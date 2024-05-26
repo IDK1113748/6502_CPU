@@ -1,20 +1,21 @@
 #pragma once
 #include "olcPixelGameEngine.h"
 #include "CPU_6502.h"
-#include "deassembler.h"
+#include "disassembler.h"
+#include "keyToAscii.h"
 
 class dmonitor : public olc::PixelGameEngine
 {
 public:
-	dmonitor(CPU_6502& cpuRef, deassembler& deasmRef, std::string& deassemblyRef) : _cpu(cpuRef), _deasm(deasmRef), _deassembly(deassemblyRef)
+	dmonitor(CPU_6502& cpuRef, disassembler& disasmRef, std::string& disassemblyRef) : _cpu(cpuRef), _disasm(disasmRef), _disassembly(disassemblyRef)
 	{
 		sAppName = "6502 debug monitor";
 	}
 
 private:
 	CPU_6502& _cpu;
-	deassembler& _deasm;
-	std::string& _deassembly;
+	disassembler& _disasm;
+	std::string& _disassembly;
 
 	void drawWindows()
 	{
@@ -40,7 +41,7 @@ private:
 	void drawPC()
 	{
 		DrawString({ 704, 64 }, "PC", olc::WHITE, 4);
-		DrawString({ 672, 128 }, _deasm.itohex(_cpu.rPC, true, true), olc::WHITE, 4);
+		DrawString({ 672, 128 }, _disasm.itohex(_cpu.rPC, true, true), olc::WHITE, 4);
 
 	}
 
@@ -48,13 +49,13 @@ private:
 	{
 		drawPC();
 
-		DrawString({ 672, 192 }, "A " + _deasm.itohex(_cpu.rA, false, true), olc::WHITE, 4);
+		DrawString({ 672, 192 }, "A " + _disasm.itohex(_cpu.rA, false, true), olc::WHITE, 4);
 
-		DrawString({ 672, 256 }, "X " + _deasm.itohex(_cpu.rX, false, true), olc::WHITE, 4);
+		DrawString({ 672, 256 }, "X " + _disasm.itohex(_cpu.rX, false, true), olc::WHITE, 4);
 
-		DrawString({ 672, 320 }, "Y " + _deasm.itohex(_cpu.rY, false, true), olc::WHITE, 4);
+		DrawString({ 672, 320 }, "Y " + _disasm.itohex(_cpu.rY, false, true), olc::WHITE, 4);
 
-		DrawString({ 640, 384 }, "SP " + _deasm.itohex(_cpu.rSP, false, true), olc::WHITE, 4);
+		DrawString({ 640, 384 }, "SP " + _disasm.itohex(_cpu.rSP, false, true), olc::WHITE, 4);
 
 		std::string binP;
 		for (int i = 7; i >= 0; i--)
@@ -68,7 +69,7 @@ private:
 
 	void drawPage()
 	{
-		DrawString({ 872, 372 }, "Page " + _deasm.itohex(page, false, true));
+		DrawString({ 872, 372 }, "Page " + _disasm.itohex(page, false, true));
 
 		if (page == 1)
 		{
@@ -78,31 +79,31 @@ private:
 		for (int i = 0; i < 16; i++)
 		{
 			for (int j = 0; j < 16; j++)
-				DrawString({ 872 + 24 * j, 392 + 12 * i }, _deasm.itohex(_cpu.RAM[256 * page + 16 * i + j], false, true));
+				DrawString({ 872 + 24 * j, 392 + 12 * i }, _disasm.itohex(_cpu.RAM[256 * page + 16 * i + j], false, true));
 
 		}
 	}
 
 	int line = 0;
-	int startDeasm;
-	int lenDeasm;
+	int startdisasm;
+	int lendisasm;
 
-	void drawDeassembly()
+	void drawdisassembly()
 	{
-		if (lenDeasm == 0)
+		if (lendisasm == 0)
 			return;
 
-		int currentLine = std::lower_bound(_deasm.assembledInsts.begin(), _deasm.assembledInsts.end(), _cpu.rPC) - _deasm.assembledInsts.begin();
+		int currentLine = std::lower_bound(_disasm.assembledInsts.begin(), _disasm.assembledInsts.end(), _cpu.rPC) - _disasm.assembledInsts.begin();
 		if (currentLine >= line / 2 && currentLine < line / 2 + 16)
 			DrawLine({ 875 , 59 + 16 * (currentLine - line / 2) }, { 890 , 59 + 16 * (currentLine - line / 2) }, olc::YELLOW);
-		std::cout << currentLine << "\n";
+		
 		for(const auto& i : breakpoints)
 		{
 			if (i >= line/2 && i < line/2 + 16)
 				FillCircle({ 897 , 59 + 16*(i-line/2)}, 5, olc::RED);
 		}
 
-		DrawString({ 912, 56 }, _deassembly.substr(startDeasm, lenDeasm), olc::WHITE, 1);
+		DrawString({ 912, 56 }, _disassembly.substr(startdisasm, lendisasm), olc::WHITE, 1);
 	}
 
 	unsigned char page = 0;
@@ -151,41 +152,41 @@ private:
 	{
 		drawWindows();
 		drawMonitor();
-		drawDeassembly();
+		drawdisassembly();
 		drawInternalStatus();
 		drawPage();
 	}
 
-	void findSubstrDeasm()
+	void findSubstrdisasm()
 	{
 		int l = line;
 		int ch = 0;
-		lenDeasm = 0;
+		lendisasm = 0;
 		while (l > 0)
 		{
-			if (ch >= _deassembly.size())
+			if (ch >= _disassembly.size())
 				return;
 
-			if (_deassembly[ch] == '\n')
+			if (_disassembly[ch] == '\n')
 				l--;
 			ch++;
 		}
 
-		startDeasm = ch;
+		startdisasm = ch;
 
 		l = 36;
-		while (l > 0 && ch < _deassembly.size())
+		while (l > 0 && ch < _disassembly.size())
 		{
-			if (_deassembly[ch] == '\n')
+			if (_disassembly[ch] == '\n')
 				l--;
 			ch++;
-			lenDeasm++;
+			lendisasm++;
 		}
 	}
 
 	bool OnUserCreate() override
 	{
-		findSubstrDeasm();
+		findSubstrdisasm();
 		drawAll();
 		return true;
 	}
@@ -197,14 +198,47 @@ private:
 
 	std::vector<int> breakpoints;
 
+	bool waitingForInput = false;
+
+	//RAM[0XD] = xxxxxCSx C = caps lock S = shift
+
 	bool OnUserUpdate(float fElapsedTime) override
 	{
+		if (waitingForInput)
+		{
+			_cpu.RAM[0xD] = (_cpu.RAM[0xD] & 0xFD) + 0x2 * GetKey(olc::Key::SHIFT).bHeld;
+
+			if (AnyKeyPressed() && !GetKey(olc::Key::SHIFT).bPressed)
+			{
+				int index = std::lower_bound(valueInputKeys.begin(), valueInputKeys.end(), GetLastKeyPressed(), [](const KeyCharMap& lhs, olc::Key key) {return (int)lhs.k < (int)key; }) - valueInputKeys.begin();
+
+				if (GetKey(olc::Key::CAPS_LOCK).bPressed)
+				{
+					std::cout << "cl " << 0x4 * int(!bool(_cpu.RAM[0xE] >> 2)) << "\n";
+					_cpu.RAM[0xD] = (_cpu.RAM[0xD] & 0xFB) + 0x4 * int(!bool(_cpu.RAM[0xD] >> 2));
+				}
+				else
+				if (index != valueInputKeys.size())
+				{
+					_cpu.RAM[0xE] = 1;
+					_cpu.RAM[0xF] = valueInputKeys[index].l;
+					waitingForInput = false;
+				}
+			}
+
+			_cpu.execute(nullptr);
+			drawAll();
+			return true;
+		}
+
 		bool redraw = false;
+
 		timePassed += fElapsedTime;
 		
 		if (GetKey(olc::Key::R).bPressed)
 		{
 			_cpu.init();
+
 			redraw = true;
 		}
 
@@ -219,17 +253,18 @@ private:
 
 		if (run)
 		{
-			while (run && _cpu.execute())
+			while (run && _cpu.execute(nullptr, &waitingForInput) && !waitingForInput)
 			{
 				for (const auto& brkpt : breakpoints)
-					if (_deasm.assembledInsts[brkpt] == _cpu.rPC)
+					if (_disasm.assembledInsts[brkpt] == _cpu.rPC)
 					{
 						run = false;
 						break;
 					}
 
 			}
-			run = false;
+			if (!waitingForInput)
+				run = false;
 			redraw = true;
 		}
 		else
@@ -237,8 +272,8 @@ private:
 			if (GetKey(olc::Key::I).bPressed)
 			{
 				redraw = true;
-
-				_cpu.execute();
+				
+				_cpu.execute(nullptr, &waitingForInput);
 			}
 
 			if (GetKey(olc::Key::O).bPressed)
@@ -250,7 +285,7 @@ private:
 				if (_cpu.RAM[_cpu.rPC] == 0x20) // 20 = JSR
 				{
 					do {
-						_cpu.execute();
+						_cpu.execute(nullptr, &waitingForInput);
 						if (_cpu.RAM[_cpu.rPC] == 0x20)
 						{
 							functionCalls++;
@@ -260,10 +295,10 @@ private:
 							functionCalls--;
 						}
 					} while (_cpu.RAM[_cpu.rPC] != 0x60 || functionCalls >= 0); // 60 = RTS
-					_cpu.execute();
+					_cpu.execute(nullptr, &waitingForInput);
 				}
 				else
-					_cpu.execute();
+					_cpu.execute(nullptr, &waitingForInput);
 			}
 		}
 
@@ -321,7 +356,7 @@ private:
 					line += 4;
 				}
 
-				findSubstrDeasm();
+				findSubstrdisasm();
 			}
 			redraw = true;
 
@@ -349,7 +384,7 @@ private:
 		
 		if (redraw)
 			drawAll();
-	
+		
 		return true;
 	}
 };

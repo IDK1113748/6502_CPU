@@ -1,0 +1,24 @@
+	lda #$21
+	ldy #$25
+	jsr mul
+	brk
+
+mul:
+	sta $E0
+	lda #0
+	sta $E1
+	sta $E2
+mul_loop:
+	cpy #0
+	beq mul_exit
+	clc
+	lda $E1
+	adc $E0
+	sta $E1
+	lda #0
+	adc $E2
+	sta $E2
+	dey
+	jmp mul_loop
+mul_exit:
+	rts

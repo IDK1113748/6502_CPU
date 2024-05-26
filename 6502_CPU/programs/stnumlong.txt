@@ -1,0 +1,80 @@
+; Stores a 1 byte decimal value taken from the keyboard
+
+define KEYBRD_FLAGS $0D
+define ANY_KEY_PRESSED $0E
+define SHIFT #$02
+define CAPS_LOCK #$04
+define INPUT $F
+
+define NUMSTRING $20
+
+	jsr mum_input
+
+	jsr num_input
+	dex
+	lda NUMSTRING,X
+	sec
+	sbc #$30
+	sta $400
+	dex
+	bmi exit
+	lda NUMSTRING,X
+	sbc #$30
+	tay
+	lda #10
+	jsr mul
+	clc
+	adc $400
+	sta $400
+	dex
+	bmi exit
+	lda NUMSTRING,X
+	sec
+	sbc #$30
+	tay
+	lda #100
+	jsr mul
+	clc
+	adc $400
+	sta $400
+exit:
+	brk
+
+num_input:
+	ldx #0
+scan_char:
+	lda ANY_KEY_PRESSED
+	bne exit_scan
+	jmp scan_char
+
+exit_scan:
+	lda INPUT
+	cmp #$0A
+	beq num_input_exit
+	cmp #$08
+	bne store_in_string
+	dex
+	lda #0
+	sta $8000, X
+	jmp scan_char
+store_in_string:
+	lda INPUT
+	sta NUMSTRING, X
+	inx
+	jmp scan_char
+
+num_input_exit:
+	rts
+
+mul:
+	sta $E0
+	lda #0
+mul_loop:
+	cpy #0
+	beq mul_exit
+	clc
+	adc $E0
+	dey
+	jmp mul_loop
+mul_exit:
+	rts

@@ -33,12 +33,6 @@ private:
 			restart = true;
 		}
 
-		if (AnyKeyPressed())
-		{
-			olc::Key key = GetLastKeyPressed();
-			if (key >= olc::Key::A && key <= olc::Key::Z)
-				std::cout << char((GetKey(olc::Key::CAPS_LOCK).bHeld || GetKey(olc::Key::SHIFT).bHeld ? 'A' : 'a') + (int)key - 1);
-		}
 
 		bool VRAM_W;
 		if (run && _cpu.execute(&VRAM_W))

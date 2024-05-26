@@ -1,5 +1,6 @@
 #ifndef CPU_H
 #define CPU_H
+#include "olcPixelGameEngine.h"
 
 class CPU_6502
 {
@@ -150,7 +151,7 @@ public:
 
 	word fetch(addressing_mode addr, bool incPC = true);
 
-	bool execute(bool* VRAM_W = nullptr);
+	bool execute(bool* VRAM_W = nullptr, bool* waitingForInput = nullptr);
 };
 
 #endif //CPU_H

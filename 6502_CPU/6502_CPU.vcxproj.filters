@@ -32,13 +32,16 @@
     <ClInclude Include="CPU_6502.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="deassembler.h">
+    <ClInclude Include="disassembler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dmonitor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="monitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="keyToAscii.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

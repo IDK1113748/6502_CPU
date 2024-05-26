@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "olcPixelGameEngine.h"
 #include "CPU_6502.h"
 
 using byte = unsigned char;
@@ -25,6 +26,8 @@ void CPU_6502::init()
 
 	for (int i = 0x8000; i < 0x8400; i++)
 		RAM[i] = 0;
+	RAM[0xE] = 0;
+	RAM[0XD] = 0;
 }
 
 void CPU_6502::start()
@@ -147,8 +150,16 @@ word CPU_6502::fetch(addressing_mode addr, bool incPC)
 	}
 }
 
-bool CPU_6502::execute(bool* VRAM_W)
+bool CPU_6502::execute(bool* VRAM_W, bool* waitingForInput)
 {
+	if (waitingForInput != nullptr)
+	{
+		if (RAM[rPC + 1] == 0xE && RAM[rPC] == 0xA5 && (RAM[0xE] & 1) == 0)
+		{
+			*waitingForInput = true;
+		}
+	}
+
 	word opcode = RAM[rPC++];
 	int lo = opcode & 15;
 	int hi = (opcode >> 4) & 15;
@@ -451,7 +462,12 @@ bool CPU_6502::execute(bool* VRAM_W)
 
 	case LDA:
 	{
+		bool clearKeyboardFlag = (RAM[rPC - 1] == 0xA5 && RAM[rPC] == 0xE && (RAM[0xE] & 1) != 0);
+
 		rA = RAM[fetch(addr)];
+
+		if (clearKeyboardFlag)
+			RAM[0xE] &= 0xFE; //11111110
 
 		setFlag(fN, (rA >> 7));
 		setFlag(fZ, (rA == 0));

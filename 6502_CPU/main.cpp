@@ -1,6 +1,6 @@
 #include "CPU_6502.h"
 #include "assembler.h"
-#include "deassembler.h"
+#include "disassembler.h"
 #include "dmonitor.h"
 #include "monitor.h"
 #include <fstream>
@@ -11,7 +11,7 @@ enum flag_types {
 	fleadingZeroes,
 	fdontRun,
 	fdump,
-	fdeassemble,
+	fdisassemble,
 	fshowsource,
 	fdebugmon,
 	fmon
@@ -50,7 +50,7 @@ bool getProgram(string& text)
 			{
 			case 'd':
 				if (flag_name == "de")
-					flags |= (1 << fdeassemble);
+					flags |= (1 << fdisassemble);
 				else if (flag_name == "dec")
 					flags |= (1 << fdecimal);
 				else if (flag_name == "dump")
@@ -97,10 +97,10 @@ int main()
 {
 	CPU_6502 cpu;
 	assembler assmer(cpu);
-	deassembler deassmer(cpu);
+	disassembler disassmer(cpu);
 
 	string text;
-	string deassembly;
+	string disassembly;
 	while (getProgram(text))
 	{
 		cpu.init();
@@ -110,10 +110,10 @@ int main()
 
 		int size = assmer.assemble(text);
 
-		if (flag(fdeassemble))
+		if (flag(fdisassemble))
 		{
-			deassembly = deassmer.deassemble(0x200 + size, flag(fdecimal), flag(fleadingZeroes));
-			cout << deassembly + "\n";
+			disassembly = disassmer.disassemble(0x200 + size, flag(fdecimal), flag(fleadingZeroes));
+			cout << disassembly + "\n";
 		}
 		
 		if(flag(fdump))
@@ -123,9 +123,9 @@ int main()
 		{
 			if (flag(fdebugmon))
 			{
-				deassembly = deassmer.deassemble(0x200 + size, flag(fdecimal), flag(fleadingZeroes), true);
+				disassembly = disassmer.disassemble(0x200 + size, flag(fdecimal), flag(fleadingZeroes), true);
 
-				dmonitor mon(cpu, deassmer, deassembly);
+				dmonitor mon(cpu, disassmer, disassembly);
 				if (mon.Construct(1280, 640, 1, 1))
 					mon.Start();
 			}

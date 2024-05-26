@@ -1040,6 +1040,7 @@ namespace olc
 		bool AnyKeyHeld() const;
 		bool AnyKeyPressed() const;
 		olc::Key GetLastKeyPressed();
+		void SetLastKeyPressed(olc::Key key);
 		bool pAnyKeyHeld = false;
 		bool pAnyKeyPressed = false;
 
@@ -2153,9 +2154,14 @@ namespace olc
 	bool PixelGameEngine::AnyKeyPressed() const
 	{ return /*LastKeyPressed != LastKeyPressedOld*/ pAnyKeyPressed; }
 
-	olc::Key  PixelGameEngine::GetLastKeyPressed()
+	olc::Key PixelGameEngine::GetLastKeyPressed()
 	{
 		return (olc::Key)LastKeyPressed;
+	}
+
+	void PixelGameEngine::SetLastKeyPressed(olc::Key key)
+	{
+		LastKeyPressed = key;
 	}
 
 	bool PixelGameEngine::Draw(const olc::vi2d& pos, Pixel p)

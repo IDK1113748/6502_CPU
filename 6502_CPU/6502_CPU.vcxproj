@@ -134,8 +134,9 @@
   <ItemGroup>
     <ClInclude Include="assembler.h" />
     <ClInclude Include="CPU_6502.h" />
-    <ClInclude Include="deassembler.h" />
+    <ClInclude Include="disassembler.h" />
     <ClInclude Include="dmonitor.h" />
+    <ClInclude Include="keyToAscii.h" />
     <ClInclude Include="monitor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <iostream>
-class deassembler
+class disassembler
 {
 	using byte = unsigned char;
 	using word = unsigned short;
@@ -9,7 +9,7 @@ class deassembler
 	CPU_6502& _cpu;
 
 public:
-	deassembler(CPU_6502& cpuRef) : _cpu(cpuRef) {}
+	disassembler(CPU_6502& cpuRef) : _cpu(cpuRef) {}
 
 	const std::string inst_name_str[57] =
 	{
@@ -116,7 +116,7 @@ public:
 		return hex;
 	}
 
-	std::string deassembleLine(int& ptr, bool& decimal, bool& leadingZeroes, bool& doubleBreak)
+	std::string disassembleLine(int& ptr, bool& decimal, bool& leadingZeroes, bool& doubleBreak)
 	{
 		std::string line;
 
@@ -270,11 +270,11 @@ public:
 		return line;
 	}
 
-	bool deassembled = false;
+	bool disassembled = false;
 
-	std::string deassemble(int endPtr, bool decimal = false, bool leadingZeroes = false, bool doubleBreak = false)
+	std::string disassemble(int endPtr, bool decimal = false, bool leadingZeroes = false, bool doubleBreak = false)
 	{
-		deassembled = true;
+		disassembled = true;
 		std::string output;
 
 		int ptr = 0x200;
@@ -314,7 +314,7 @@ public:
 			}
 
 			assembledInsts.push_back(ptr);
-			output += " " + deassembleLine(ptr, decimal, leadingZeroes, doubleBreak);
+			output += " " + disassembleLine(ptr, decimal, leadingZeroes, doubleBreak);
 		}
 		return output;
 	}

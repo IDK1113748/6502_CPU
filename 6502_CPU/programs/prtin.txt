@@ -1,0 +1,39 @@
+define KEYBRD_FLAGS $0D
+define ANY_KEY_PRESSED $0E
+define SHIFT #$02
+define CAPS_LOCK #$04
+define INPUT $F
+
+ldx #0
+
+scan_char:
+lda ANY_KEY_PRESSED
+bne exit_scan
+jmp scan_char
+
+exit_scan:
+lda INPUT
+cmp #$0A
+beq exit
+cmp #$08
+bne not_backspace
+dex
+lda #0
+sta $8000, X
+jmp scan_char
+not_backspace:
+lda KEYBRD_FLAGS
+and SHIFT
+beq store_on_mon
+lda INPUT
+sec
+sbc #$20
+sta INPUT
+store_on_mon:
+lda INPUT
+sta $8000, X
+inx
+jmp scan_char
+
+exit:
+brk
