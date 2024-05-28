@@ -1,15 +1,18 @@
 #pragma once
 #include <string>
 #include <iostream>
+#include "assembler.h"
+
 class disassembler
 {
 	using byte = unsigned char;
 	using word = unsigned short;
 
 	CPU_6502& _cpu;
+	assembler& _assmer;
 
 public:
-	disassembler(CPU_6502& cpuRef) : _cpu(cpuRef) {}
+	disassembler(CPU_6502& cpuRef, assembler& assmerRef) : _cpu(cpuRef), _assmer(assmerRef) {}
 
 	const std::string inst_name_str[57] =
 	{
@@ -272,49 +275,53 @@ public:
 
 	bool disassembled = false;
 
-	std::string disassemble(int endPtr, bool decimal = false, bool leadingZeroes = false, bool doubleBreak = false)
+	std::string disassemble(bool decimal = false, bool leadingZeroes = false, bool doubleBreak = false)
 	{
 		disassembled = true;
 		std::string output;
+		output.clear();
 
-		int ptr = 0x200;
-
-		while (ptr != endPtr)
+		for (const auto& section : _assmer.code)
 		{
-			output += "$" + itohex(ptr, true, true) + "  ";
-
-			int nBytes;
-			int lo = _cpu.RAM[ptr] & 15;
-			int hi = (_cpu.RAM[ptr] >> 4) & 15;
-			switch (_cpu.INSTS[hi][lo].Addr)
+			std::cout << "start " << section.start << "\n";
+			int ptr = section.start;
+			while (ptr < section.start + section.bytelen)
 			{
-			case CPU_6502::impl:
-			case CPU_6502::acc:
-				nBytes = 1;
-				break;
+				output += "$" + itohex(ptr, true, true) + "  ";
 
-			case CPU_6502::abs:
-			case CPU_6502::abs_X:
-			case CPU_6502::abs_Y:
-			case CPU_6502::ind:
-				nBytes = 3;
-				break;
+				int nBytes;
+				int lo = _cpu.RAM[ptr] & 15;
+				int hi = (_cpu.RAM[ptr] >> 4) & 15;
+				switch (_cpu.INSTS[hi][lo].Addr)
+				{
+				case CPU_6502::impl:
+				case CPU_6502::acc:
+					nBytes = 1;
+					break;
 
-			default:
-				nBytes = 2;
+				case CPU_6502::abs:
+				case CPU_6502::abs_X:
+				case CPU_6502::abs_Y:
+				case CPU_6502::ind:
+					nBytes = 3;
+					break;
+
+				default:
+					nBytes = 2;
+				}
+
+				for (int i = 0; i < nBytes; i++)
+				{
+					output += itohex(_cpu.RAM[ptr + i], false, true) + " ";
+				}
+				for (int i = nBytes; i < 3; i++)
+				{
+					output += "   ";
+				}
+
+				assembledInsts.push_back(ptr);
+				output += " " + disassembleLine(ptr, decimal, leadingZeroes, doubleBreak);
 			}
-
-			for (int i = 0; i < nBytes; i++)
-			{
-				output += itohex(_cpu.RAM[ptr + i], false, true) + " ";
-			}
-			for (int i = nBytes; i < 3; i++)
-			{
-				output += "   ";
-			}
-
-			assembledInsts.push_back(ptr);
-			output += " " + disassembleLine(ptr, decimal, leadingZeroes, doubleBreak);
 		}
 		return output;
 	}

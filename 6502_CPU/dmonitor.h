@@ -214,7 +214,6 @@ private:
 
 				if (GetKey(olc::Key::CAPS_LOCK).bPressed)
 				{
-					std::cout << "cl " << 0x4 * int(!bool(_cpu.RAM[0xE] >> 2)) << "\n";
 					_cpu.RAM[0xD] = (_cpu.RAM[0xD] & 0xFB) + 0x4 * int(!bool(_cpu.RAM[0xD] >> 2));
 				}
 				else

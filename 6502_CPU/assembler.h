@@ -198,11 +198,70 @@ public:
 		{
 			while (whitespace(assembly[ch]))
 				ch++;
+			if (assembly[ch] == '.')
+			{
+				if (assembly.substr(ch + 1, 3) == "org" || assembly.substr(ch + 1, 3) == "ORG")
+				{
+					ch += 4;
+					while (whitespace(assembly[ch]))
+						ch++;
+
+					int len;
+					loc = stonum(assembly, len, ch, assembly[ch]);
+				}
+				else if (assembly[ch + 1] == 'd' || assembly[ch + 1] == 'D' && !(assembly.substr(ch + 1, 4) == "data" || assembly.substr(ch + 1, 4) == "DATA"))
+				{
+					int bytes;
+					switch (assembly[ch + 2])
+					{
+					case 'b':
+					case 'B':
+						bytes = 1;
+						break;
+					case 'w':
+					case 'W':
+						bytes = 2;
+						break;
+					default:
+						bytes = 0;
+					}
+
+					ch += 3;
+					while (whitespace(assembly[ch]))
+						ch++;
+
+					while (true)
+					{
+						if (assembly[ch] == '\'' || assembly[ch] == '\"')
+						{
+							ch++;
+							while (assembly[ch] != '\'' && assembly[ch] != '\"')
+							{
+								loc++;
+								ch++;
+							}
+						}
+						else
+							loc += bytes;
+						while (assembly[ch] != '\n' && assembly[ch] != ',' && assembly[ch] != ';')
+							ch++;
+						if (assembly[ch] == '\n' || assembly[ch] == ';')
+							break;
+						ch++;
+						while (whitespace(assembly[ch]))
+							ch++;
+					}
+				}
+				while (assembly[ch] != '\n')
+					ch++;
+				ch++;
+				continue;
+			}
 
 			bool isDefinition = false;
 			if (assembly[ch] == 'd' && ch + 7 < assembly.length())
 			{
-				if (assembly.substr(ch+1, 6) == "efine ")
+				if (assembly.substr(ch + 1, 6) == "efine ")
 				{
 					isDefinition = true;
 				}
@@ -262,8 +321,8 @@ public:
 					bool Yind = false;
 					for (int i = ch; assembly[i] != ';' && assembly[i] != '\n' && !Yind; i++)
 					{
-						if(assembly[i] == ',')
-							for (int j = i+1; assembly[j] != ';' && assembly[j] != '\n' && !Yind; j++)
+						if (assembly[i] == ',')
+							for (int j = i + 1; assembly[j] != ';' && assembly[j] != '\n' && !Yind; j++)
 							{
 								if (assembly[j] == 'y' || assembly[j] == 'Y')
 									Yind = true;
@@ -349,7 +408,7 @@ public:
 								bool neg = (assembly[ch] == '-');
 								if (neg)
 									ch++;
-								
+
 								int len = 0;
 								for (int i = 0; num(assembly[ch + i]); i++)
 									len++;
@@ -437,6 +496,82 @@ public:
 		}
 	}
 
+	int stonum(std::string& assembly, int& len, int& ch, char base)
+	{
+		len = 0;
+		switch (base)
+		{
+		case '%':
+		{
+			int i;
+
+			for (i = 0; assembly[ch + 1 + i] == '0' || assembly[ch + 1 + i] == '1'; i++)
+			{
+				if (len > 0)
+					len++;
+
+				if (assembly[ch + 1 + i] == '1')
+				{
+					if (len == 0)
+						len++;
+				}
+
+			}
+
+			return stobin(assembly.substr(ch + 1 + i - len, len));
+		}
+		case '$':
+		{
+			int i;
+
+			for (i = 0; alphanum(assembly[ch + 1 + i]); i++)
+			{
+				if (len > 0)
+					len++;
+
+				if (assembly[ch + 1 + i] != '0')
+				{
+					if (len == 0)
+						len++;
+				}
+			}
+
+			return stohex(assembly.substr(ch + 1 + i - len, len));
+		}
+		case '\'':
+		case '\"':
+		{
+			len = 8;
+			return assembly[ch + 1];
+		}
+		default:
+		{
+			if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
+			{
+				bool neg = (assembly[ch] == '-');
+				if (neg)
+				{
+					ch++;
+				}
+
+				for (int i = 0; num(assembly[ch + i]); i++)
+					len++;
+
+				return stoi(assembly.substr(ch, len));
+			}
+			return 0;
+		}
+		}
+	}
+
+	struct codeSection {
+		codeSection(int start, int bytelen) : start(start), bytelen(bytelen) {}
+		int start;
+		int bytelen;
+	};
+
+	std::vector<codeSection> code;
+
 	int assemble(std::string& assembly)
 	{
 		preprocess(assembly);
@@ -444,16 +579,127 @@ public:
 
 		int ch = 0;
 		int ptr = 0x200;
+		code.clear();
+		code.push_back({ ptr, 0 });
+		std::cout << code.back().start << "\n";
 
+		bool textSection = true;
 		while (ch < assembly.length())
 		{
 			while (whitespace(assembly[ch]))
 				ch++;
 
+			bool continueInMainLoop = false;
+			if (assembly[ch] == '.')
+			{
+				if (ch + 4 < assembly.length())
+				{
+					if (assembly.substr(ch + 1, 4) == "data" || assembly.substr(ch + 1, 4) == "DATA")
+					{
+						if (textSection)
+						{
+							code.back().bytelen = ptr - code.back().start;
+							textSection = false;
+						}
+
+						continueInMainLoop = true;
+					}
+					else if (assembly.substr(ch + 1, 4) == "text" || assembly.substr(ch + 1, 4) == "TEXT")
+					{
+						if (!textSection)
+						{
+							code.push_back({ ptr, 0 });
+							textSection = true;
+						}
+
+						continueInMainLoop = true;
+					}
+					else if (assembly.substr(ch + 1, 3) == "org" || assembly.substr(ch + 1, 3) == "ORG")
+					{
+						ch += 4;
+						while (whitespace(assembly[ch]))
+							ch++;
+
+						int len;
+						code.back().bytelen = ptr - code.back().start;
+						std::cout << code.back().bytelen << "\n\n";
+						ptr = stonum(assembly, len, ch, assembly[ch]);
+						code.push_back({ ptr, 0 });
+						std::cout << stonum(assembly, len, ch, assembly[ch]) << "\n";
+
+						continueInMainLoop = true;
+					}
+					else if (assembly[ch + 1] == 'd' || assembly[ch + 1] == 'D')
+					{
+						int bytes;
+						switch (assembly[ch + 2])
+						{
+						case 'b':
+						case 'B':
+							bytes = 1;
+							break;
+						case 'w':
+						case 'W':
+							bytes = 2;
+							break;
+						default:
+							bytes = 0;
+						}
+
+						ch += 3;
+						while (whitespace(assembly[ch]))
+							ch++;
+
+						int len;
+						while (true)
+						{
+							if (assembly[ch] == '\'' || assembly[ch] == '\"')
+							{
+								ch++;
+								while (assembly[ch] != '\'' && assembly[ch] != '\"')
+								{
+									_cpu.RAM[ptr++] = assembly[ch++];
+								}
+							}
+							else
+							{
+								int num = stonum(assembly, len, ch, assembly[ch]);
+
+								if (bytes == 1)
+									_cpu.RAM[ptr++] = num & 0xFF;
+								else if (bytes == 2)
+								{
+									_cpu.RAM[ptr++] = num & 0xFF;
+									_cpu.RAM[ptr++] = num >> 8;
+								}
+								std::cout << "db/w " << num << "  \n";
+							}
+							while (assembly[ch] != '\n' && assembly[ch] != ',' && assembly[ch] != ';')
+								ch++;
+							if (assembly[ch] == '\n' || assembly[ch] == ';')
+							{
+								continueInMainLoop = true;
+								break;
+							}
+							ch++;
+							while (whitespace(assembly[ch]))
+								ch++;
+						}
+					}
+				}
+			}
+			if (continueInMainLoop)
+			{
+				while (assembly[ch] != '\n')
+					ch++;
+				ch++;
+				continue;
+			}
+
 			bool isDefinition = false;
 			if (assembly[ch] == 'd' && ch + 7 < assembly.length())
 			{
-				if (assembly.substr(ch+1, 6) == "efine ")
+				if (assembly.substr(ch + 1, 6) == "efine ")
 				{
 					isDefinition = true;
 				}
@@ -580,7 +826,7 @@ public:
 					{
 						am = CPU_6502::impl;
 					}
-					else if (assembly[ch] == '#' || assembly[ch] == '$' || assembly[ch] == '%' || num(assembly[ch]) || assembly[ch] == '-')
+					else if (assembly[ch] == '#' || assembly[ch] == '$' || assembly[ch] == '%' || num(assembly[ch]) || assembly[ch] == '-' || assembly[ch] == '\'' || assembly[ch] == '\"')
 					{
 						if (!indirect)
 						{
@@ -593,9 +839,55 @@ public:
 
 						switch (assembly[ch])
 						{
+						case '\'':
+						case '\"':
+						{
+							if (jump || !(assembly[ch+2] == '\'' || assembly[ch+2] == '\"'))
+							{
+								nArgs = 2;
+								
+								if (jump && (assembly[ch + 2] == '\'' || assembly[ch + 2] == '\"'))
+								{
+									arg[0] = assembly[ch + 1];
+									arg[1] = 0;
+								}
+								else
+								{
+									arg[0] = assembly[ch + 2];
+									arg[1] = assembly[ch + 1];
+								}
+
+								if (am != CPU_6502::ind)
+								{
+									if (Xind)
+										am = CPU_6502::abs_X;
+									else if (Yind)
+										am = CPU_6502::abs_Y;
+									else
+										am = CPU_6502::abs;
+								}
+							}
+							else
+							{
+								nArgs = 1;
+								arg[0] = assembly[ch + 1];
+								std::cout << "  " << assembly[ch + 1] << "\n";
+
+								if (am != CPU_6502::imm && !indirect)
+								{
+									if (Xind)
+										am = CPU_6502::zpg_X;
+									else if (Yind)
+										am = CPU_6502::zpg_Y;
+									else
+										am = CPU_6502::zpg;
+								}
+							}
+							break;
+						}
 						case '%':
 						{
-							int len = 0;
+							/*int len = 0;
 							int i;
 
 							for (i = 0; assembly[ch + 1 + i] == '0' || assembly[ch + 1 + i] == '1'; i++)
@@ -611,7 +903,10 @@ public:
 
 							}
 
-							unsigned int num = stobin(assembly.substr(ch + 1 + i - len, len));
+							unsigned int num = stobin(assembly.substr(ch + 1 + i - len, len));*/
+
+							int len;
+							int num = stonum(assembly, len, ch, '%');
 
 							if (jump || len > 8)
 							{
@@ -647,14 +942,14 @@ public:
 							break;
 						}
 						//case '0':
-							//	break; //octal
+							//	break; //octal, i'm sure i'll add it at some point
 						case '$':
 							if (am == CPU_6502::rel)
 							{
 								//rewrite this garbage (although it works)
 								nArgs = 1;
 								int n;
-								if (alphanum(assembly[ch + 3]) && alphanum(assembly[ch + 3]))
+								if (alphanum(assembly[ch + 3]) && alphanum(assembly[ch + 4]))
 									n = hextoi(assembly[ch + 1]) * 16 * 16 * 16 + hextoi(assembly[ch + 2]) * 16 * 16 + hextoi(assembly[ch + 3]) * 16 + hextoi(assembly[ch + 4]);
 								else n = hextoi(assembly[ch + 1]) * 16 + hextoi(assembly[ch + 2]);
 
@@ -663,7 +958,7 @@ public:
 							}
 							else
 							{
-								int len = 0;
+								/*int len = 0;
 								int i;
 
 								for (i = 0; alphanum(assembly[ch + 1 + i]); i++)
@@ -678,8 +973,10 @@ public:
 									}
 								}
 
-								int num = stohex(assembly.substr(ch + 1 + i - len, len));
+								int num = stohex(assembly.substr(ch + 1 + i - len, len));*/
 
+								int len;
+								int num = stonum(assembly, len, ch, '$');
 								if (jump || len > 2)
 								{
 									nArgs = 2;
@@ -716,7 +1013,7 @@ public:
 							}
 						default:
 						{
-							
+
 							if (num(assembly[ch]) || (assembly[ch] == '-' && num(assembly[ch + 1])))
 							{
 								bool neg = (assembly[ch] == '-');
@@ -872,6 +1169,7 @@ public:
 				ch++;
 		}
 		_cpu.RAM[ptr] = 0x00;
+		code.back().bytelen = ptr - code.back().start;
 
 		return ptr - 0x200;
 	}

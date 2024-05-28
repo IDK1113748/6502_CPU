@@ -119,8 +119,8 @@ public:
 
 	struct
 	{
-		inst_name name;
-		addressing_mode Addr;
+		inst_name name = ILL;
+		addressing_mode Addr = ill;
 	} INSTS[16][15] =
 	{
 	{{BRK, impl}, {ORA, index_ind}, {},         {}, {},           {ORA, zpg},   {ASL, zpg},   {}, {PHP, impl}, {ORA, imm},   {ASL, acc},  {}, {},           {ORA, abs},   {ASL, abs}},

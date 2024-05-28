@@ -8,24 +8,31 @@ define INPUT $F
 
 define NUMSTRING $20
 
+	jsr stnum
+	brk
+
+stnum:
 	jsr num_input
+
 	dex
 	lda NUMSTRING,X
 	sec
 	sbc #$30
-	sta $400
+	sta $40
+
 	dex
-	bmi exit
+	bmi stnum_exit
 	lda NUMSTRING,X
 	sbc #$30
 	tay
 	lda #10
 	jsr mul
 	clc
-	adc $400
-	sta $400
+	adc $40
+	sta $40
+
 	dex
-	bmi exit
+	bmi stnum_exit
 	lda NUMSTRING,X
 	sec
 	sbc #$30
@@ -33,10 +40,10 @@ define NUMSTRING $20
 	lda #100
 	jsr mul
 	clc
-	adc $400
-	sta $400
-exit:
-	brk
+	adc $40
+	sta $40
+stnum_exit:
+	rts
 
 num_input:
 	ldx #0

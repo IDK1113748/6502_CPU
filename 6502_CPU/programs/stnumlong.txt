@@ -1,5 +1,3 @@
-; Stores a 1 byte decimal value taken from the keyboard
-
 define KEYBRD_FLAGS $0D
 define ANY_KEY_PRESSED $0E
 define SHIFT #$02
@@ -8,37 +6,63 @@ define INPUT $F
 
 define NUMSTRING $20
 
-	jsr mum_input
+define mulwywopL $E3
+define mulwywopH $E4
+define mulwywprodL $E5
+define mulwywprodH $E6
 
+define powL $de
+define powH $df
+
+	jsr stnuml
+	brk	
+
+; Stores a 2 byte decimal value taken from the keyboard at $40
+stnuml:
 	jsr num_input
+	lda #1
+	sta powL
+	lda #0
+	sta powH
+	sta $40
+	sta $41
+stnuml_loop:
 	dex
-	lda NUMSTRING,X
-	sec
-	sbc #$30
-	sta $400
-	dex
-	bmi exit
-	lda NUMSTRING,X
-	sbc #$30
-	tay
-	lda #10
-	jsr mul
-	clc
-	adc $400
-	sta $400
-	dex
-	bmi exit
+	bmi stnuml_exit
+
+	; Y = digit
 	lda NUMSTRING,X
 	sec
 	sbc #$30
 	tay
-	lda #100
-	jsr mul
+	
+	; op = pow, prod = op * Y
+	lda powL
+	sta mulwywopL
+	lda powH
+	sta mulwywopH
+	jsr mulwyw
+	
+	; $40 += prod	
+	lda mulwywprodL
 	clc
-	adc $400
-	sta $400
-exit:
-	brk
+	adc $40
+	sta $40		
+	lda mulwywprodH
+	adc $41
+	sta $41
+	
+	; pow = prod = op * 10
+	ldy #10
+	jsr mulwyw
+	lda mulwywprodL
+	sta powL
+	lda mulwywprodH
+	sta powH
+	
+	jmp stnuml_loop
+stnuml_exit:
+	rts
 
 num_input:
 	ldx #0
@@ -66,15 +90,21 @@ store_in_string:
 num_input_exit:
 	rts
 
-mul:
-	sta $E0
+mulwyw:
 	lda #0
-mul_loop:
+	sta mulwywprodL
+	sta mulwywprodH
+mulwyw_loop:
 	cpy #0
-	beq mul_exit
+	beq mulwyw_exit
+	lda mulwywprodL
 	clc
-	adc $E0
+	adc mulwywopL
+	sta mulwywprodL
+	lda mulwywprodH
+	adc mulwywopH
+	sta mulwywprodH
 	dey
-	jmp mul_loop
-mul_exit:
+	jmp mulwyw_loop
+mulwyw_exit:
 	rts

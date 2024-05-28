@@ -1,0 +1,20 @@
+LDA #42
+.text
+LDA #43
+JMP label
+.data
+.db $83, $35, $63
+.data
+.db $39
+.dw $1234
+.db "abc"
+message:
+.db "Hello, world!"
+.dw "aBC", $95
+.text
+label:
+LDA #42
+LDA #"a"
+JMP "A"
+STA 'ab"
+BRK

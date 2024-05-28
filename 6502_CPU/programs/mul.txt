@@ -1,16 +1,16 @@
 	lda #$21
 	ldy #$25
-	jsr mul
+	jsr mulayw
 	brk
 
-mul:
+mulayw:
 	sta $E0
 	lda #0
 	sta $E1
 	sta $E2
-mul_loop:
+mulayw_loop:
 	cpy #0
-	beq mul_exit
+	beq mulayw_exit
 	clc
 	lda $E1
 	adc $E0
@@ -19,6 +19,6 @@ mul_loop:
 	adc $E2
 	sta $E2
 	dey
-	jmp mul_loop
-mul_exit:
+	jmp mulayw_loop
+mulayw_exit:
 	rts

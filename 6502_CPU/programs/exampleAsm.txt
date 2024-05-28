@@ -1,5 +1,6 @@
 define op_0 $090
 label1:
+.org $300
 LDA #$1
 label_2:
 LDA #%1
@@ -7,13 +8,17 @@ label_3:
 LDA #$42
 STA op_0
 LDA #$20
+.org $0400
 ADC $0190
 JMP ($76)
 JMP ($0076)
+JMP label_f
+.ORG %01101110
 JMP $76
 JSR label_3
 ADC label_3
 STA ($23, X)
+   .org 4793
 STA ($24), Y
 ; STA ($0123, X) ; invalid - assembles to STA abs
 ADC #$45
@@ -34,5 +39,10 @@ LDA #-1
 LDA -128
 LDA -129
 
+.org $5000
+.data
+  .db  $43,  23  , %01101, $10
+.text
+brk
 label_f:
 BRK

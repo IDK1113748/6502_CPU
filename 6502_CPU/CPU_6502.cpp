@@ -10,6 +10,9 @@ using word = unsigned short;
 CPU_6502::CPU_6502()
 {
 	RAM = new byte[0x10000];
+
+	RAM[0xFFFC] = 0x00;
+	RAM[0xFFFD] = 0x02;
 }
 
 CPU_6502::~CPU_6502()
@@ -22,7 +25,7 @@ void CPU_6502::init()
 	rSP = 0xFF;
 	setFlag(fI, 0);
 
-	rPC = 0x200;
+	rPC = getWord(0xFFFC);
 
 	for (int i = 0x8000; i < 0x8400; i++)
 		RAM[i] = 0;

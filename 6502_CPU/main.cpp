@@ -97,7 +97,7 @@ int main()
 {
 	CPU_6502 cpu;
 	assembler assmer(cpu);
-	disassembler disassmer(cpu);
+	disassembler disassmer(cpu, assmer);
 
 	string text;
 	string disassembly;
@@ -112,7 +112,7 @@ int main()
 
 		if (flag(fdisassemble))
 		{
-			disassembly = disassmer.disassemble(0x200 + size, flag(fdecimal), flag(fleadingZeroes));
+			disassembly = disassmer.disassemble(flag(fdecimal), flag(fleadingZeroes));
 			cout << disassembly + "\n";
 		}
 		
@@ -123,7 +123,7 @@ int main()
 		{
 			if (flag(fdebugmon))
 			{
-				disassembly = disassmer.disassemble(0x200 + size, flag(fdecimal), flag(fleadingZeroes), true);
+				disassembly = disassmer.disassemble(flag(fdecimal), flag(fleadingZeroes), true);
 
 				dmonitor mon(cpu, disassmer, disassembly);
 				if (mon.Construct(1280, 640, 1, 1))

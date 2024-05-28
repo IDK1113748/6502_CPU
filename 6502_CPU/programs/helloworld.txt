@@ -1,0 +1,4 @@
+BRK
+.data
+.org $8000
+.db "Hello, world!"
