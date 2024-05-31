@@ -25,7 +25,7 @@ private:
 
 		FillRect({ 864, 48 }, { 392, 296 }, olc::BLACK);
 
-		FillRect({ 1236, 48 }, { 20, 296 }, olc::GREY);
+		FillRect({ 1236, 48 }, { 20, 296 }, olc::PixelF(0.6f,0.6f,0.6f));
 
 		FillRect({ 864, 368 }, { 392, 16 }, olc::PixelF(0.35f, 0.35f, 0.35f));
 		FillRect({ 864, 384 }, { 392, 208 }, olc::PixelF(0.20f, 0.20f, 0.20f));
@@ -94,16 +94,31 @@ private:
 			return;
 
 		int currentLine = std::lower_bound(_disasm.assembledInsts.begin(), _disasm.assembledInsts.end(), _cpu.rPC) - _disasm.assembledInsts.begin();
-		if (currentLine >= line / 2 && currentLine < line / 2 + 16)
+		if (currentLine >= line / 2 && currentLine < line / 2 + 18)
 			DrawLine({ 875 , 59 + 16 * (currentLine - line / 2) }, { 890 , 59 + 16 * (currentLine - line / 2) }, olc::YELLOW);
 		
 		for(const auto& i : breakpoints)
 		{
-			if (i >= line/2 && i < line/2 + 16)
+			if (i >= line/2 && i < line/2 + 18)
 				FillCircle({ 897 , 59 + 16*(i-line/2)}, 5, olc::RED);
 		}
 
 		DrawString({ 912, 56 }, _disassembly.substr(startdisasm, lendisasm), olc::WHITE, 1);
+
+		int posStart = 48 + int(double(line) / (double)_disasm.assembledInsts.size() / 2.0 * 296.0);
+		int posEnd = 48 + int(double(line+36) / (double)_disasm.assembledInsts.size() / 2.0 * 296.0);
+		if (posEnd > 344)
+			posEnd = 344;
+		FillRect({ 1236,posStart }, { 20, posEnd-posStart }, olc::PixelF(0.33f,0.33f,0.33f));
+
+		for (const int& b : breakpoints)
+		{
+			int bPos = 48 + int(double(b) / (double)_disasm.assembledInsts.size() * 296.0);
+			DrawLine({ 1236,bPos }, { 1256,bPos }, olc::RED);
+		}
+		int curPos = 48 + int(double(currentLine) / (double)_disasm.assembledInsts.size() * 296.0);
+
+		DrawLine({ 1236,curPos }, { 1256,curPos }, olc::YELLOW);
 	}
 
 	unsigned char page = 0;
@@ -184,6 +199,24 @@ private:
 		}
 	}
 
+	void followDisassemblyIfOut(bool minusArow = false)
+	{
+		if (!(_cpu.rPC >= _disasm.assembledInsts[line / 2] && _cpu.rPC < _disasm.assembledInsts[line / 2 + 18]))
+		{
+			for (int i = 0; i < _disasm.assembledInsts.size(); i++)
+			{
+				if (_disasm.assembledInsts[i] == _cpu.rPC)
+				{
+					line = 2 * i;
+					if (minusArow)
+						line -= 2;
+					findSubstrdisasm();
+					break;
+				}
+			}
+		}
+	}
+
 	bool OnUserCreate() override
 	{
 		findSubstrdisasm();
@@ -195,6 +228,7 @@ private:
 	float timePassed = 0.0f;
 
 	bool run = false;
+	bool touchedScrollbar = false;
 
 	std::vector<int> breakpoints;
 
@@ -237,6 +271,7 @@ private:
 		if (GetKey(olc::Key::R).bPressed)
 		{
 			_cpu.init();
+			followDisassemblyIfOut();
 
 			redraw = true;
 		}
@@ -255,13 +290,16 @@ private:
 			while (run && _cpu.execute(nullptr, &waitingForInput) && !waitingForInput)
 			{
 				for (const auto& brkpt : breakpoints)
-					if (_disasm.assembledInsts[brkpt] == _cpu.rPC)
-					{
-						run = false;
-						break;
-					}
+					if(brkpt < _disasm.assembledInsts.size())
+						if (_disasm.assembledInsts[brkpt] == _cpu.rPC)
+						{
+							run = false;
+							break;
+						}
 
 			}
+			followDisassemblyIfOut(true);
+			
 			if (!waitingForInput)
 				run = false;
 			redraw = true;
@@ -273,6 +311,8 @@ private:
 				redraw = true;
 				
 				_cpu.execute(nullptr, &waitingForInput);
+
+				followDisassemblyIfOut();
 			}
 
 			if (GetKey(olc::Key::O).bPressed)
@@ -298,34 +338,53 @@ private:
 				}
 				else
 					_cpu.execute(nullptr, &waitingForInput);
+
+				followDisassemblyIfOut();
 			}
 		}
 
-		if (GetMouse(0).bPressed)
+		if (GetMouse(0).bHeld)
 		{
 			olc::vi2d mousePos = GetMousePos();
-			
-			if (mousePos.x >= 864 && mousePos.x <= 864 + 392 && mousePos.y >= 48 && mousePos.y <= 48 + 296)
+			if (GetMouse(0).bPressed)
 			{
-				int l;
-				l = (mousePos.y - 48) / 16 + line / 2;
-				bool found = false;
-			
-				for (auto i = breakpoints.begin(); i != breakpoints.end(); i++)
+				if (mousePos.x >= 864 && mousePos.x <= 864 + 372 && mousePos.y >= 48 && mousePos.y <= 48 + 296)
 				{
-					if (*i == l)
+					int l;
+					l = (mousePos.y - 48) / 16 + line / 2;
+					bool found = false;
+
+					for (auto i = breakpoints.begin(); i != breakpoints.end(); i++)
 					{
-						found = true;
-						breakpoints.erase(i);
-						break;
+						if (*i == l)
+						{
+							found = true;
+							breakpoints.erase(i);
+							break;
+						}
 					}
+					if (!found)
+						breakpoints.push_back(l);
+					redraw = true;
 				}
-				if(!found)
-					breakpoints.push_back(l);
-				redraw = true;
+				else if (mousePos.x >= 1236 && mousePos.x <= 1256 && mousePos.y >= 48 && mousePos.y <= 48 + 296)
+				{
+					touchedScrollbar = true;
+				}
 			}
 
+			if (touchedScrollbar && mousePos.y <= 48 + 296)
+			{
+				if (mousePos.y < 48)
+					line = 0;
+				else
+					line = int(double((mousePos.y - 48) * 2 * _disasm.assembledInsts.size()) / 296.0);
+				findSubstrdisasm();
+				redraw = true;
+			}
 		}
+		else
+			touchedScrollbar = false;
 		
 		int mouseWheel = GetMouseWheel();
 		if (mouseWheel != 0)
@@ -347,7 +406,9 @@ private:
 			{
 				if (mouseWheel > 0)
 				{
-					if (line >= 4)
+					if (line < 4)
+						line = 0;
+					else
 						line -= 4;
 				}
 				else

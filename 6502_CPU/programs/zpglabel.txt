@@ -1,0 +1,15 @@
+	lda ^zpglabel
+	sta $40
+	brk
+	.data
+	.org 16
+	zpglabel:
+	.db $34
+	.db zpglabel
+	.dw zpglabel
+;	;.db label
+	.dw label
+	.db $45
+
+.org $1234
+label:

@@ -1,0 +1,296 @@
+define KEYBRD_FLAGS $0D
+define ANY_KEY_PRESSED $0E
+define SHIFT #$02
+define CAPS_LOCK #$04
+define INPUT $F
+
+define NUMSTRING $20
+
+.text
+	jsr stnuml
+	lda $40
+	sta mulwywop
+	sta bcdIN
+	lda $41
+	sta mulwywop+1
+	sta bcdIN+1
+	jsr print_bcd
+	jsr stnum
+	ldy $40
+	sty bcdIN
+	lda #0
+	sta bcdIN+1
+	jsr print_bcd
+	jsr mulwyw
+	lda mulwywprod
+	sta bcdIN
+	lda mulwywprod+1
+	sta bcdIN+1
+	jsr print_bcd
+
+.data
+.org $E3
+mulwywop:
+	.skip 2
+
+mulwywprod:
+	.skip 2
+
+.org $DE
+pow:
+	.skip 2
+bcdIN:
+	.skip 2
+bcdOUT:
+	.skip 2
+
+.text
+.org $1000
+	
+	; Stores a 2 byte decimal value taken from the keyboard at $40
+stnuml:
+	jsr num_input
+	lda #1
+	sta pow
+	lda #0
+	sta pow+1
+	sta $40
+	sta $41
+stnuml_loop:
+	dex
+	bmi stnuml_exit
+
+	; Y = digit
+	lda NUMSTRING,X
+	sec
+	sbc #$30
+	tay
+	
+	; op = pow, prod = op * Y
+	lda pow
+	sta mulwywop
+	lda pow+1
+	sta mulwywop+1
+	jsr mulwyw
+	
+	; $40 += prod	
+	lda mulwywprod
+	clc
+	adc $40
+	sta $40		
+	lda mulwywprod+1
+	adc $41
+	sta $41
+	
+	; pow = prod = op * 10
+	ldy #10
+	jsr mulwyw
+	lda mulwywprod
+	sta pow
+	lda mulwywprod+1
+	sta pow+1
+	
+	jmp stnuml_loop
+stnuml_exit:
+	rts
+
+stnum:
+	jsr num_input
+
+	dex
+	lda NUMSTRING,X
+	sec
+	sbc #$30
+	sta $40
+
+	dex
+	bmi stnum_exit
+	lda NUMSTRING,X
+	sbc #$30
+	tay
+	lda #10
+	jsr mul
+	clc
+	adc $40
+	sta $40
+
+	dex
+	bmi stnum_exit
+	lda NUMSTRING,X
+	sec
+	sbc #$30
+	tay
+	lda #100
+	jsr mul
+	clc
+	adc $40
+	sta $40
+stnum_exit:
+	rts
+
+; Arguments: bcdIN and bcdIN+1 (unsigned short)
+; Modifies : the monitor, P with N=1,
+;            X=nOfDigitsPrinted, Y=-1, A=ASCII value of last digit
+print_bcd:
+	jmp bcd
+	bcs print_bcd_loop ; carry is set, so an even number of digits
+	
+	lda $10,Y
+	adc #$30
+	sta $8000, X
+	inx
+	dey
+	
+print_bcd_loop:
+	cpy #0
+	bmi print_bcd_exit
+	lda $10,Y
+	lsr A
+	lsr A
+	lsr A
+	lsr A
+	clc
+	adc #$30
+	sta $8000, X
+	inx
+	lda $10,Y
+	and #$f
+	clc
+	adc #$30
+	sta $8000, X
+	inx
+	dey
+	jmp print_bcd_loop
+print_bcd_exit:
+	rts
+
+; Arguments: bcdIN and bcdIN+1 (unsigned short)
+; Modifies : RAM[10]-RAM[10+Y] = bcd in little-endian format,
+;            RAM[bcdIN,bcdIN+1,bcdOUT,bcdOUT+1],
+;            A=0, X=nOfDigits, Y=(X-1)/2=nOfBytesUsed-1
+;            P with N=0 and C=(even number of digits ? 1 : 0)
+bcd:
+	lda #0
+	sta bcdOUT
+	sta bcdOUT+1
+
+	ldx #0
+
+bcd_main_loop:
+	clc
+	php
+
+	ldy #0
+bcd_loop:
+	cpy #16
+	beq bcd_exit_loop
+	plp
+	
+	rol bcdIN
+	rol bcdIN+1
+	rol bcdOUT
+	rol bcdOUT+1
+	
+	lda bcdOUT
+	sec
+	sbc #10
+	php
+
+	bcc bcd_skip_storing
+	sta bcdOUT
+bcd_skip_storing:
+	
+	iny
+	jmp bcd_loop
+bcd_exit_loop:
+	plp
+	
+	rol bcdIN
+	rol bcdIN+1
+	
+	txa
+	lsr A ; divides the index for where we put the digit by 2. Carry flag is set if it must be stored in the high nibble
+	tay
+	lda bcdOUT
+	php
+	bcc bcd_skip_store_Hnibble
+	asl A
+	asl A
+	asl A
+	asl A
+	ora $10,Y
+bcd_skip_store_Hnibble:
+	sta $10,Y
+	inx
+	
+	lda bcdIN+1
+	ora bcdIN
+	beq bcd_exit
+	plp
+
+	lda #0
+	sta bcdOUT+1
+	sta bcdOUT
+	jmp bcd_main_loop
+
+bcd_exit:
+	plp
+	rts
+
+num_input:
+	ldx #0
+scan_char:
+	lda ANY_KEY_PRESSED
+	bne exit_scan
+	jmp scan_char
+
+exit_scan:
+	lda INPUT
+	cmp #$0A
+	beq num_input_exit
+	cmp #$08
+	bne store_in_string
+	dex
+	lda #0
+	sta $8000, X
+	jmp scan_char
+store_in_string:
+	lda INPUT
+	sta NUMSTRING, X
+	inx
+	jmp scan_char
+
+num_input_exit:
+	rts
+
+mulwyw:
+	lda #0
+	sta mulwywprod
+	sta mulwywprod+1
+mulwyw_loop:
+	cpy #0
+	beq mulwyw_exit
+	lda mulwywprod
+	clc
+	adc mulwywop
+	sta mulwywprod
+	lda mulwywprod+1
+	adc mulwywop+1
+	sta mulwywprod+1
+	dey
+	jmp mulwyw_loop
+mulwyw_exit:
+	rts
+
+mul:
+	sta $E0
+	lda #0
+mul_loop:
+	cpy #0
+	beq mul_exit
+	clc
+	adc $E0
+	dey
+	jmp mul_loop
+mul_exit:
+	rts

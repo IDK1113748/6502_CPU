@@ -1,0 +1,128 @@
+.data
+.org $c0
+bcdIN:
+	.skip 2
+bcdOUT:
+	.skip 2
+
+.text
+.org $200
+	lda #$24
+	sta bcdIN
+	lda #$55
+	sta bcdIN+1
+	jsr bcd
+	ldx #0
+	jsr print_bcd
+	brk
+
+; Arguments: RAM[10]-RAM[10+Y] = bcd in little-endian format
+;            The carry flag (determines whether to print an even number of digits or not)
+;            X = pointer to where to print in the monitor's first page
+; Modifies : the monitor, P with N=1,
+;            X=nOfDigitsPrinted, Y=-1, A=ASCII value of last digit
+print_bcd:
+	bcs print_bcd_loop ; carry is set, so an even number of digits
+	
+	lda $10,Y
+	adc #$30
+	sta $8000, X
+	inx
+	dey
+	
+print_bcd_loop:
+	cpy #0
+	bmi print_bcd_exit
+	lda $10,Y
+	lsr A
+	lsr A
+	lsr A
+	lsr A
+	clc
+	adc #$30
+	sta $8000, X
+	inx
+	lda $10,Y
+	and #$f
+	clc
+	adc #$30
+	sta $8000, X
+	inx
+	dey
+	jmp print_bcd_loop
+print_bcd_exit:
+	rts
+
+; Arguments: bcdIN and bcdIN+1 (unsigned short)
+; Modifies : RAM[10]-RAM[10+Y] = bcd in little-endian format,
+;            RAM[bcdIN,bcdIN+1,bcdOUT,bcdOUT+1],
+;            A=0, X=nOfDigits, Y=(X-1)/2=nOfBytesUsed-1
+;            P with N=0 and C=(even number of digits ? 1 : 0)
+bcd:
+	lda #0
+	sta bcdOUT
+	sta bcdOUT+1
+
+	ldx #0
+
+bcd_main_loop:
+	clc
+	php
+
+	ldy #0
+bcd_loop:
+	cpy #16
+	beq bcd_exit_loop
+	plp
+	
+	rol bcdIN
+	rol bcdIN+1
+	rol bcdOUT
+	rol bcdOUT+1
+	
+	lda bcdOUT
+	sec
+	sbc #10
+	php
+
+	bcc bcd_skip_storing
+	sta bcdOUT
+bcd_skip_storing:
+	
+	iny
+	jmp bcd_loop
+bcd_exit_loop:
+	plp
+	
+	rol bcdIN
+	rol bcdIN+1
+	
+	txa
+	lsr A ; divides the index for where we put the digit by 2. Carry flag is set if it must be stored in the high nibble
+	tay
+	lda bcdOUT
+	php
+	bcc bcd_skip_store_Hnibble
+	asl A
+	asl A
+	asl A
+	asl A
+	ora $10,Y
+bcd_skip_store_Hnibble:
+	sta $10,Y
+	inx
+	
+	lda bcdIN+1
+	ora bcdIN
+	beq bcd_exit
+	plp
+
+	lda #0
+	sta bcdOUT+1
+	sta bcdOUT
+	jmp bcd_main_loop
+
+bcd_exit:
+	plp
+	rts
+	

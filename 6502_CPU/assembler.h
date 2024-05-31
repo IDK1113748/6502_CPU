@@ -209,6 +209,20 @@ public:
 					int len;
 					loc = stonum(assembly, len, ch, assembly[ch]);
 				}
+				else if (assembly.substr(ch + 1, 4) == "skip" || assembly.substr(ch + 1, 4) == "SKIP")
+				{
+					ch += 5;
+					while (whitespace(assembly[ch]))
+						ch++;
+
+					int num = 1;
+					if (assembly[ch] != '\n' && assembly[ch] != ';')
+					{
+						int len;
+						num = stonum(assembly, len, ch, assembly[ch]);
+					}
+					loc += num;
+				}
 				else if (assembly[ch + 1] == 'd' || assembly[ch + 1] == 'D' && !(assembly.substr(ch + 1, 4) == "data" || assembly.substr(ch + 1, 4) == "DATA"))
 				{
 					int bytes;
@@ -335,6 +349,8 @@ public:
 					else
 						switch (assembly[ch])
 						{
+						case '\'':
+						case '\"':
 						case '#':
 							loc++;
 							break;
@@ -393,11 +409,11 @@ public:
 							break;
 						}
 						default:
-							if (alpha(assembly[ch]))
+							if (alpha(assembly[ch]) || assembly[ch] == '^')
 							{
 								if (!(assembly[ch] == 'A' && (assembly[ch + 1] == '\n' || whitespace(assembly[ch + 1]) || assembly[ch + 1] == ';')))
 								{
-									if (branch)
+									if (branch || assembly[ch] == '^')
 										loc++;
 									else
 										loc += 2;
@@ -621,12 +637,52 @@ public:
 							ch++;
 
 						int len;
-						code.back().bytelen = ptr - code.back().start;
-						std::cout << code.back().bytelen << "\n\n";
-						ptr = stonum(assembly, len, ch, assembly[ch]);
-						code.push_back({ ptr, 0 });
+						if(textSection)
+							code.back().bytelen = ptr - code.back().start;
+
+						if (alpha(assembly[ch]) || assembly[ch] == '_')
+						{
+							std::string name;
+							for (int i = ch; alphanum(assembly[i]) || assembly[i] == '_'; i++)
+								name += assembly[i];
+
+							bool foundLabel = false;
+							for (const auto& l : labels)
+							{
+								if (l.labelName == name)
+								{
+									ptr = l.val;
+
+									foundLabel = true;
+									break;
+								}
+							}
+							if (!foundLabel)
+								std::cout << "WARNING: Label \"" << name << "\" not found.\n";
+						}
+						else
+							ptr = stonum(assembly, len, ch, assembly[ch]);
+
+
+						if(textSection)
+							code.push_back({ ptr, 0 });
 						std::cout << stonum(assembly, len, ch, assembly[ch]) << "\n";
 
+						continueInMainLoop = true;
+					}
+					else if (assembly.substr(ch + 1, 4) == "skip" || assembly.substr(ch + 1, 4) == "SKIP")
+					{
+						ch += 5;
+						while (whitespace(assembly[ch]))
+							ch++;
+
+						int num = 1;
+						if (assembly[ch] != '\n' && assembly[ch] != ';')
+						{
+							int len;
+							num = stonum(assembly, len, ch, assembly[ch]);
+						}
+						ptr += num;
 						continueInMainLoop = true;
 					}
 					else if (assembly[ch + 1] == 'd' || assembly[ch + 1] == 'D')
@@ -663,16 +719,39 @@ public:
 							}
 							else
 							{
-								int num = stonum(assembly, len, ch, assembly[ch]);
+								int num;
+								if (alpha(assembly[ch]) || assembly[ch] == '_')
+								{
+									std::string name;
+									for (int i = ch; alphanum(assembly[i]) || assembly[i] == '_'; i++)
+										name += assembly[i];
+
+									bool foundLabel = false;
+									for (const auto& l : labels)
+									{
+										if (l.labelName == name)
+										{
+											num = l.val;
+
+											foundLabel = true;
+											break;
+										}
+									}
+									if (!foundLabel)
+										std::cout << "WARNING: Label \"" << name << "\" not found.\n";
+								}
+								else
+									num = stonum(assembly, len, ch, assembly[ch]);
 
 								if (bytes == 1)
 									_cpu.RAM[ptr++] = num & 0xFF;
 								else if (bytes == 2)
 								{
+									std::cout << "bytes2  L " << (num & 0xFF) << " H " << (num >> 8) << "  num " << num << "\n";
 									_cpu.RAM[ptr++] = num & 0xFF;
 									_cpu.RAM[ptr++] = num >> 8;
+									std::cout << (int)_cpu.RAM[ptr - 2] << " " << (int)_cpu.RAM[ptr - 1] << "\n\n";
 								}
-								std::cout << "db/w " << num << "  \n";
 							}
 							while (assembly[ch] != '\n' && assembly[ch] != ',' && assembly[ch] != ';')
 								ch++;
@@ -842,47 +921,22 @@ public:
 						case '\'':
 						case '\"':
 						{
-							if (jump || !(assembly[ch+2] == '\'' || assembly[ch+2] == '\"'))
+							am = CPU_6502::imm;
+
+							nArgs = 1;
+							arg[0] = assembly[ch + 1];
+							std::cout << "  " << assembly[ch + 1] << "\n";
+
+							if (am != CPU_6502::imm && !indirect)
 							{
-								nArgs = 2;
-								
-								if (jump && (assembly[ch + 2] == '\'' || assembly[ch + 2] == '\"'))
-								{
-									arg[0] = assembly[ch + 1];
-									arg[1] = 0;
-								}
+								if (Xind)
+									am = CPU_6502::zpg_X;
+								else if (Yind)
+									am = CPU_6502::zpg_Y;
 								else
-								{
-									arg[0] = assembly[ch + 2];
-									arg[1] = assembly[ch + 1];
-								}
-
-								if (am != CPU_6502::ind)
-								{
-									if (Xind)
-										am = CPU_6502::abs_X;
-									else if (Yind)
-										am = CPU_6502::abs_Y;
-									else
-										am = CPU_6502::abs;
-								}
+									am = CPU_6502::zpg;
 							}
-							else
-							{
-								nArgs = 1;
-								arg[0] = assembly[ch + 1];
-								std::cout << "  " << assembly[ch + 1] << "\n";
-
-								if (am != CPU_6502::imm && !indirect)
-								{
-									if (Xind)
-										am = CPU_6502::zpg_X;
-									else if (Yind)
-										am = CPU_6502::zpg_Y;
-									else
-										am = CPU_6502::zpg;
-								}
-							}
+						
 							break;
 						}
 						case '%':
@@ -1085,7 +1139,7 @@ public:
 						}
 						}
 					}
-					else if (alpha(assembly[ch]))
+					else if (alpha(assembly[ch]) || assembly[ch] == '^')
 					{
 						if (assembly[ch] == 'A' && !(alphanum(assembly[ch + 1]) || assembly[ch + 1] == '_'))
 						{
@@ -1094,7 +1148,10 @@ public:
 						else
 						{
 							std::string name;
-							for (int i = ch; alphanum(assembly[i]) || assembly[i] == '_'; i++)
+							int i = ch;
+							if (assembly[ch] == '^')
+								i++;
+							for (; alphanum(assembly[i]) || assembly[i] == '_'; i++)
 								name += assembly[i];
 
 							bool foundLabel = false;
@@ -1111,7 +1168,8 @@ public:
 									}
 									else
 									{
-										if (!indirect)
+										
+										if (!(indirect && jump) && am != CPU_6502::imm && assembly[ch] != '^')
 										{
 											if (Xind)
 												am = CPU_6502::abs_X;
@@ -1119,13 +1177,37 @@ public:
 												am = CPU_6502::abs_Y;
 											else
 												am = CPU_6502::abs;
+											nArgs = 2;
+										}
+										else if (assembly[ch] == '^')
+										{
+											if (Xind)
+												am = CPU_6502::zpg_X;
+											else if (Yind)
+												am = CPU_6502::zpg_Y;
+											else
+												am = CPU_6502::zpg;
+											nArgs = 1;
 										}
 
-										nArgs = 2; //Note: data labels cannot be used with the zero page (for example "ADC zpgaddr")
+										int num = l.val;
+										while (whitespace(assembly[i]))
+											i++;
+										if (assembly[i] == '+')
+										{
+											i++;
+											while (whitespace(assembly[i]))
+												i++;
+											int len;
+											num += stonum(assembly, len, i, assembly[i]);
+										}
+
+										//Note: data labels cannot be used with the zero page (for example "ADC zpgaddr")
 										//the absolute opcode will be used wherever there's a zero-page (with the exception of the indirect zpg, which will not assemble)
 
-										arg[0] = l.val & 0xFF;
-										arg[1] = l.val >> 8;
+										arg[0] = num & 0xFF;
+										if(nArgs == 2)
+											arg[1] = num >> 8;
 									}
 
 									foundLabel = true;
@@ -1169,7 +1251,8 @@ public:
 				ch++;
 		}
 		_cpu.RAM[ptr] = 0x00;
-		code.back().bytelen = ptr - code.back().start;
+		if(textSection)
+			code.back().bytelen = ptr - code.back().start;
 
 		return ptr - 0x200;
 	}

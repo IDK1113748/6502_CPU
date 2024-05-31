@@ -1,0 +1,6 @@
+.data
+.org $2000
+.dw label
+
+.org $4030
+label:

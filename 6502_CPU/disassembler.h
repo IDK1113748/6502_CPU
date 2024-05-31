@@ -283,7 +283,7 @@ public:
 
 		for (const auto& section : _assmer.code)
 		{
-			std::cout << "start " << section.start << "\n";
+			std::cout << "start " << section.start << "  len " << section.bytelen << "\n";
 			int ptr = section.start;
 			while (ptr < section.start + section.bytelen)
 			{

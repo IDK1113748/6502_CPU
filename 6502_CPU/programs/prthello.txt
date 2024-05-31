@@ -1,0 +1,19 @@
+.org $300
+main:
+	ldx #0
+loop:
+	lda message, X
+	beq exit
+	sta $8000, X
+	inx
+	jmp loop
+exit:
+	brk
+
+.data
+.org $200
+message:
+	.db "Hello, world! abcdefghijklmnopqrstuvwxyz", 0
+
+.org $FFFC
+	.dw main

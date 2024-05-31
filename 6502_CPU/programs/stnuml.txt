@@ -1,0 +1,116 @@
+define KEYBRD_FLAGS $0D
+define ANY_KEY_PRESSED $0E
+define SHIFT #$02
+define CAPS_LOCK #$04
+define INPUT $F
+
+define NUMSTRING $20
+
+.data
+.org $E3
+mulwywop:
+	.skip 2
+
+mulwywprod:
+	.skip 2
+
+.org $DE
+pow:
+	.skip 2
+
+.text
+.org $200
+	jsr stnuml
+	brk	
+
+; Stores a 2 byte decimal value taken from the keyboard at $40
+stnuml:
+	jsr num_input
+	lda #1
+	sta pow
+	lda #0
+	sta pow+1
+	sta $40
+	sta $41
+stnuml_loop:
+	dex
+	bmi stnuml_exit
+
+	; Y = digit
+	lda NUMSTRING,X
+	sec
+	sbc #$30
+	tay
+	
+	; op = pow, prod = op * Y
+	lda pow
+	sta mulwywop
+	lda pow+1
+	sta mulwywop+1
+	jsr mulwyw
+	
+	; $40 += prod	
+	lda mulwywprod
+	clc
+	adc $40
+	sta $40		
+	lda mulwywprod+1
+	adc $41
+	sta $41
+	
+	; pow = prod = op * 10
+	ldy #10
+	jsr mulwyw
+	lda mulwywprod
+	sta pow
+	lda mulwywprod+1
+	sta pow+1
+	
+	jmp stnuml_loop
+stnuml_exit:
+	rts
+
+num_input:
+	ldx #0
+scan_char:
+	lda ANY_KEY_PRESSED
+	bne exit_scan
+	jmp scan_char
+
+exit_scan:
+	lda INPUT
+	cmp #$0A
+	beq num_input_exit
+	cmp #$08
+	bne store_in_string
+	dex
+	lda #0
+	sta $8000, X
+	jmp scan_char
+store_in_string:
+	lda INPUT
+	sta NUMSTRING, X
+	inx
+	jmp scan_char
+
+num_input_exit:
+	rts
+
+mulwyw:
+	lda #0
+	sta mulwywprod
+	sta mulwywprod+1
+mulwyw_loop:
+	cpy #0
+	beq mulwyw_exit
+	lda mulwywprod
+	clc
+	adc mulwywop
+	sta mulwywprod
+	lda mulwywprod+1
+	adc mulwywop+1
+	sta mulwywprod+1
+	dey
+	jmp mulwyw_loop
+mulwyw_exit:
+	rts

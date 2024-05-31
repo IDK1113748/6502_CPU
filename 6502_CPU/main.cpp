@@ -103,12 +103,11 @@ int main()
 	string disassembly;
 	while (getProgram(text))
 	{
-		cpu.init();
-
 		if (flag(fshowsource))
 			cout << text << "\n";
 
-		int size = assmer.assemble(text);
+		assmer.assemble(text);
+		cpu.init();
 
 		if (flag(fdisassemble))
 		{
@@ -117,7 +116,7 @@ int main()
 		}
 		
 		if(flag(fdump))
-			assmer.hexdump(size);
+			assmer.hexdump(256);
 
 		if (!flag(fdontRun))
 		{

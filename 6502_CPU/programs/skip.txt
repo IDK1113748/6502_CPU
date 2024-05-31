@@ -1,0 +1,7 @@
+lda #0
+lda #3
+ldx #5
+jmp label
+.skip 5
+label:
+brk

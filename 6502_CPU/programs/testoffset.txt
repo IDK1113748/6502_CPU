@@ -1,0 +1,9 @@
+.data
+.org $400
+label:
+	.db $43, $44, $45
+
+.text
+.org $200
+	lda label + 2
+	brk
