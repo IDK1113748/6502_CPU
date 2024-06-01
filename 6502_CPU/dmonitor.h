@@ -21,19 +21,19 @@ private:
 	{
 		Clear(olc::PixelF(0.25f, 0.25f, 0.25f));
 
-		FillRect({ 32, 48 }, { 544, 544 }, olc::BLACK);
+		FillRect({ 48, 48 }, { 544, 544 }, olc::BLACK);
 
 		FillRect({ 864, 48 }, { 392, 296 }, olc::BLACK);
 
-		FillRect({ 1236, 48 }, { 20, 296 }, olc::PixelF(0.6f,0.6f,0.6f));
+		FillRect({ 1236, 48 }, { 20, 296 }, olc::PixelF(0.6f, 0.6f, 0.6f));
 
 		FillRect({ 864, 368 }, { 392, 16 }, olc::PixelF(0.35f, 0.35f, 0.35f));
 		FillRect({ 864, 384 }, { 392, 208 }, olc::PixelF(0.20f, 0.20f, 0.20f));
-		for(int i = 0; i < 4; i++)
+		for (int i = 0; i < 4; i++)
 			for (int j = 0; j < 4; j++)
 			{
-				if((i + j) % 2 == 0)
-					FillRect({ 872 - 4 + 96*j, 392 - 2 + 48*i }, { 88 + 8, 44 + 4 }, olc::PixelF(0.10f, 0.10f, 0.10f));
+				if ((i + j) % 2 == 0)
+					FillRect({ 872 - 4 + 96 * j, 392 - 2 + 48 * i }, { 88 + 8, 44 + 4 }, olc::PixelF(0.10f, 0.10f, 0.10f));
 			}
 
 	}
@@ -96,20 +96,20 @@ private:
 		int currentLine = std::lower_bound(_disasm.assembledInsts.begin(), _disasm.assembledInsts.end(), _cpu.rPC) - _disasm.assembledInsts.begin();
 		if (currentLine >= line / 2 && currentLine < line / 2 + 18)
 			DrawLine({ 875 , 59 + 16 * (currentLine - line / 2) }, { 890 , 59 + 16 * (currentLine - line / 2) }, olc::YELLOW);
-		
-		for(const auto& i : breakpoints)
+
+		for (const auto& i : breakpoints)
 		{
-			if (i >= line/2 && i < line/2 + 18)
-				FillCircle({ 897 , 59 + 16*(i-line/2)}, 5, olc::RED);
+			if (i >= line / 2 && i < line / 2 + 18)
+				FillCircle({ 897 , 59 + 16 * (i - line / 2) }, 5, olc::RED);
 		}
 
 		DrawString({ 912, 56 }, _disassembly.substr(startdisasm, lendisasm), olc::WHITE, 1);
 
 		int posStart = 48 + int(double(line) / (double)_disasm.assembledInsts.size() / 2.0 * 296.0);
-		int posEnd = 48 + int(double(line+36) / (double)_disasm.assembledInsts.size() / 2.0 * 296.0);
+		int posEnd = 48 + int(double(line + 36) / (double)_disasm.assembledInsts.size() / 2.0 * 296.0);
 		if (posEnd > 344)
 			posEnd = 344;
-		FillRect({ 1236,posStart }, { 20, posEnd-posStart }, olc::PixelF(0.33f,0.33f,0.33f));
+		FillRect({ 1236,posStart }, { 20, posEnd - posStart }, olc::PixelF(0.33f, 0.33f, 0.33f));
 
 		for (const int& b : breakpoints)
 		{
@@ -125,41 +125,54 @@ private:
 
 	void drawMonitor()
 	{
-		std::string monitorText;
-		int ch = 0;
-		for (int i = 0; i < 32; i++)
+		if ((_cpu.RAM[0xC] & 1) == 0)
 		{
-			for (int j = 0; j < 32; j++)
+			std::string monitorText;
+			int ch = 0;
+			for (int i = 0; i < 32; i++)
 			{
-				ch++;
-				if (ch == 32)
+				for (int j = 0; j < 32; j++)
 				{
-					monitorText += "\n";
-					ch = 0;
-				}
-				char c = _cpu.RAM[0x8000 + i * 32 + j];
-
-				if (c >= 32 && c <= 127 || c == '\n')
-				{
-					monitorText += c;
-					if (c == '\n')
+					ch++;
+					if (ch == 32)
 					{
+						monitorText += "\n";
 						ch = 0;
 					}
+					char c = _cpu.RAM[0x8000 + i * 32 + j];
+
+					if (c >= 32 && c <= 127 || c == '\n')
+					{
+						monitorText += c;
+						if (c == '\n')
+						{
+							ch = 0;
+						}
+					}
+					else
+						monitorText += '\0';
 				}
-				else
-					monitorText += '\0';
+			}
+
+			int begin = 0;
+			std::size_t nextNewline = monitorText.find('\n');
+			for (int l = 0; nextNewline != std::string::npos && l < 25; l++)
+			{
+				DrawString({ 48, 64 + 20 * l }, monitorText.substr(begin, nextNewline - begin), olc::WHITE, 2);
+
+				begin = nextNewline + 1;
+				nextNewline = monitorText.find('\n', begin);
 			}
 		}
-
-		int begin = 0;
-		std::size_t nextNewline = monitorText.find('\n');
-		for(int l = 0; nextNewline != std::string::npos && l < 25; l++)
+		else
 		{
-			DrawString({ 48, 64 + 20 * l }, monitorText.substr(begin, nextNewline-begin), olc::WHITE, 2);
-
-			begin = nextNewline+1;
-			nextNewline = monitorText.find('\n', begin);
+			for (int y = 0; y < 128; y++)
+				for (int x = 0; x < 128; x++)
+				{
+					unsigned char rgb = _cpu.RAM[0x4000 + 128 * y + x];
+					olc::Pixel color(int(((rgb >> 5) & 7)* 36.42858), int(((rgb >> 2) & 7)* 36.4285), (rgb & 3)*85);
+					FillRect({ 64 + 4 * x, 64 + 4 * y }, { 4,4 }, color);
+				}
 		}
 	}
 
@@ -201,7 +214,13 @@ private:
 
 	void followDisassemblyIfOut(bool minusArow = false)
 	{
-		if (!(_cpu.rPC >= _disasm.assembledInsts[line / 2] && _cpu.rPC < _disasm.assembledInsts[line / 2 + 18]))
+		int upperBound;
+		if (_disasm.assembledInsts.size() <= line / 2 + 18)
+			upperBound = 0x10000;
+		else
+			upperBound = _disasm.assembledInsts[line / 2 + 18];			
+		
+		if (!(_cpu.rPC >= _disasm.assembledInsts[line / 2] && _cpu.rPC < upperBound))
 		{
 			for (int i = 0; i < _disasm.assembledInsts.size(); i++)
 			{
@@ -210,8 +229,8 @@ private:
 					line = 2 * i;
 					if (minusArow)
 						line -= 2;
-					findSubstrdisasm();
-					break;
+						findSubstrdisasm();
+						break;
 				}
 			}
 		}
@@ -251,12 +270,12 @@ private:
 					_cpu.RAM[0xD] = (_cpu.RAM[0xD] & 0xFB) + 0x4 * int(!bool(_cpu.RAM[0xD] >> 2));
 				}
 				else
-				if (index != valueInputKeys.size())
-				{
-					_cpu.RAM[0xE] = 1;
-					_cpu.RAM[0xF] = valueInputKeys[index].l;
-					waitingForInput = false;
-				}
+					if (index != valueInputKeys.size())
+					{
+						_cpu.RAM[0xE] = 1;
+						_cpu.RAM[0xF] = valueInputKeys[index].l;
+						waitingForInput = false;
+					}
 			}
 
 			_cpu.execute(nullptr);
@@ -267,7 +286,14 @@ private:
 		bool redraw = false;
 
 		timePassed += fElapsedTime;
-		
+
+		if (GetKey(olc::Key::C).bPressed)
+		{
+			_cpu.mon_clear();
+
+			redraw = true;
+		}
+
 		if (GetKey(olc::Key::R).bPressed)
 		{
 			_cpu.init();
@@ -290,7 +316,7 @@ private:
 			while (run && _cpu.execute(nullptr, &waitingForInput) && !waitingForInput)
 			{
 				for (const auto& brkpt : breakpoints)
-					if(brkpt < _disasm.assembledInsts.size())
+					if (brkpt < _disasm.assembledInsts.size())
 						if (_disasm.assembledInsts[brkpt] == _cpu.rPC)
 						{
 							run = false;
@@ -299,7 +325,7 @@ private:
 
 			}
 			followDisassemblyIfOut(true);
-			
+
 			if (!waitingForInput)
 				run = false;
 			redraw = true;
@@ -309,7 +335,7 @@ private:
 			if (GetKey(olc::Key::I).bPressed)
 			{
 				redraw = true;
-				
+
 				_cpu.execute(nullptr, &waitingForInput);
 
 				followDisassemblyIfOut();
@@ -385,7 +411,7 @@ private:
 		}
 		else
 			touchedScrollbar = false;
-		
+
 		int mouseWheel = GetMouseWheel();
 		if (mouseWheel != 0)
 		{
@@ -441,10 +467,10 @@ private:
 			page++;
 			redraw = true;
 		}
-		
+
 		if (redraw)
 			drawAll();
-		
+
 		return true;
 	}
 };

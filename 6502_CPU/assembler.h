@@ -1169,7 +1169,7 @@ public:
 									else
 									{
 										
-										if (!(indirect && jump) && am != CPU_6502::imm && assembly[ch] != '^')
+										if (!(indirect) && am != CPU_6502::imm && assembly[ch] != '^')
 										{
 											if (Xind)
 												am = CPU_6502::abs_X;
@@ -1189,6 +1189,8 @@ public:
 												am = CPU_6502::zpg;
 											nArgs = 1;
 										}
+										else
+											nArgs = 1;
 
 										int num = l.val;
 										while (whitespace(assembly[i]))

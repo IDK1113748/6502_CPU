@@ -20,15 +20,21 @@ CPU_6502::~CPU_6502()
 	delete[] RAM;
 }
 
+void CPU_6502::mon_clear()
+{
+	for (int i = 0x4000; i < 0x8400; i++)
+		RAM[i] = 0;
+
+	RAM[0xC] = 0;
+}
+
 void CPU_6502::init()
 {
 	rSP = 0xFF;
 	setFlag(fI, 0);
 
 	rPC = getWord(0xFFFC);
-
-	for (int i = 0x8000; i < 0x8400; i++)
-		RAM[i] = 0;
+	
 	RAM[0xE] = 0;
 	RAM[0XD] = 0;
 }
@@ -147,9 +153,9 @@ word CPU_6502::fetch(addressing_mode addr, bool incPC)
 	case zpg_Y:
 		return RAM[rPC++] + rY;
 	case index_ind:
-		return getWord(RAM[RAM[rPC++] + rX]);
+		return getWord(RAM[rPC++] + rX);
 	case ind_index:
-		return getWord(RAM[RAM[rPC++]]) + rY;
+		return getWord(RAM[rPC++]) + rY;
 	}
 }
 
@@ -438,8 +444,8 @@ bool CPU_6502::execute(bool* VRAM_W, bool* waitingForInput)
 	{
 		rY++;
 
-		setFlag(fN, (rX >> 7));
-		setFlag(fZ, (rX == 0));
+		setFlag(fN, (rY >> 7));
+		setFlag(fZ, (rY == 0));
 
 		return true;
 	}

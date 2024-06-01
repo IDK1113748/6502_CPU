@@ -19,6 +19,7 @@ public:
 	byte rS;
 
 	void init();
+	void mon_clear();
 
 	void start();
 

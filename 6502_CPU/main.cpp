@@ -106,6 +106,7 @@ int main()
 		if (flag(fshowsource))
 			cout << text << "\n";
 
+		cpu.mon_clear();
 		assmer.assemble(text);
 		cpu.init();
 

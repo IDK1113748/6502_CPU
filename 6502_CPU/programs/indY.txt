@@ -1,0 +1,9 @@
+lda #32
+ldy #$10
+sta (label),Y
+brk
+
+.data
+.org $30
+label:
+	.dw $1234

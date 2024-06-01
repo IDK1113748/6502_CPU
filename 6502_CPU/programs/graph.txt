@@ -1,0 +1,29 @@
+lda #1
+sta $c
+
+lda #0
+sta pixel_ptr
+lda #%01000000
+sta pixel_ptr+1
+
+outer_loop:
+bmi exitAll
+ldy #0
+clc
+loop:
+;lda #%11011001
+tya
+sta (pixel_ptr),Y
+iny
+beq exit
+jmp loop
+exit:
+inc pixel_ptr+1
+jmp outer_loop
+exitAll:
+brk
+
+.data
+.org $30
+pixel_ptr:
+	.skip 2
